@@ -1,11 +1,18 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import AuthScreen from './AuthScreen';
+import TasksManager from './TasksManager';
 
 export default function App() {
+  const [user, setUser] = useState(null);
+
   return (
     <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
+      {user ? (
+        <TasksManager user={user} onSignOut={() => setUser(null)} />
+      ) : (
+        <AuthScreen onAuthSuccess={setUser} />
+      )}
     </View>
   );
 }
@@ -13,8 +20,5 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
