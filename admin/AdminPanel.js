@@ -66,8 +66,15 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
         style={styles.profileButton}
         onPress={() => setProfileVisible(true)}
       >
-        <Ionicons name="person-circle" size={32} color="#007AFF" />
-      </TouchableOpacity>
+        {user?.photoURL ? (
+          <Image 
+            source={{ uri: user.photoURL }} 
+            style={styles.profileImage}
+          />
+        ) : (
+          <Ionicons name="person-circle" size={32} color="#007AFF" />
+      )}
+  </TouchableOpacity>
 
       <Text style={styles.header}>Панель администратора</Text>
       
@@ -115,6 +122,15 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
 };
 
 const styles = StyleSheet.create({
+
+  profileImage: {
+  width: 32,
+  height: 32,
+  borderRadius: 16,
+  borderWidth: 1,
+  borderColor: '#007AFF',
+  },
+  
   container: {
     flex: 1,
     padding: 20,
