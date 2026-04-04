@@ -4,7 +4,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
-import { Ionicons } from '@expo/vector-icons';
 
 const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations }) => {
   // Фильтруем активные задачи для выбранного работника
@@ -12,6 +11,7 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
 
   // Функция для получения статуса задачи
   const getTaskStatus = (task) => {
+    // Проверяем, есть ли ожидающие подтверждения для этой задачи
     const hasPendingArrival = pendingConfirmations?.some(
       p => p.taskId === task.id && p.type === 'arrival' && p.status === 'pending'
     );
@@ -19,19 +19,29 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
       p => p.taskId === task.id && p.type === 'completion' && p.status === 'pending'
     );
 
+    // Если задача завершена
+    if (task.completed) return 'completed';
+    
+    // Если есть ожидающие подтверждения
     if (hasPendingArrival || hasPendingCompletion) return 'pending';
+    
+    // Если на месте
     if (task.isOnSite) return 'onSite';
+    
+    // Иначе - не подтверждено
     return 'offSite';
   };
 
   const getStatusConfig = (status) => {
     switch (status) {
       case 'pending':
-        return { text: 'На проверке', color: '#FF9800', icon: 'time-outline' };
+        return { text: 'На проверке', color: '#FF9800', icon: '⏳' };
       case 'onSite':
-        return { text: 'На месте', color: '#4CAF50', icon: 'location-outline' };
+        return { text: 'На месте', color: '#4CAF50', icon: '📍' };
+      case 'offSite':
+        return { text: 'Не подтверждено', color: '#FF6B6B', icon: '⚠️' };
       default:
-        return { text: 'Не подтверждено', color: '#FF6B6B', icon: 'alert-circle-outline' };
+        return { text: 'Не подтверждено', color: '#FF6B6B', icon: '⚠️' };
     }
   };
 
@@ -42,9 +52,9 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
 
     return (
       <TaskCard task={item} isPending={isPending}>
-        {/* Статус задачи с иконкой */}
+        {/* Статус задачи */}
         <View style={styles.statusContainer}>
-          <Ionicons name={statusConfig.icon} size={14} color={statusConfig.color} />
+          <Text style={styles.statusIcon}>{statusConfig.icon}</Text>
           <Text style={[styles.statusText, { color: statusConfig.color }]}>
             {statusConfig.text}
           </Text>
@@ -52,7 +62,7 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
 
         {item.lastChecked && !isPending && (
           <View style={styles.lastCheckedContainer}>
-            <Ionicons name="refresh-outline" size={12} color="#8FA3BF" />
+            <Text style={styles.lastCheckedIcon}>🔄</Text>
             <Text style={styles.lastChecked}>
               Последняя проверка: {new Date(item.lastChecked).toLocaleString()}
             </Text>
@@ -64,17 +74,17 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
 
   return (
     <View style={styles.tabContainer}>
-      {/* Сначала выбор работника */}
+      {/* Выбор работника */}
       <WorkerSelector 
         selectedWorker={selectedWorker}
         workers={workers}
         setSelectedWorker={setSelectedWorker}
       />
 
-      {/* Затем счётчик активных задач */}
+      {/* Счётчик активных задач */}
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>
-          Всего активных задач: {activeTasks.length}
+          📋 Всего активных задач: {activeTasks.length}
         </Text>
       </View>
 
@@ -109,6 +119,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     gap: 6,
   },
+  statusIcon: {
+    fontSize: 14,
+  },
   statusText: {
     fontSize: 13,
     fontWeight: '500',
@@ -118,6 +131,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     gap: 4,
+  },
+  lastCheckedIcon: {
+    fontSize: 11,
   },
   lastChecked: {
     fontSize: 11,

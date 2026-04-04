@@ -15,31 +15,29 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [workers, setWorkers] = useState([]);
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
-  const [pendingConfirmations, setPendingConfirmations] = useState([]);
-  const [pendingCount, setPendingCount] = useState(0);
+const [pendingConfirmations, setPendingConfirmations] = useState([]);
+const [pendingCount, setPendingCount] = useState(0);
 
-  useEffect(() => {
-    const confirmationsRef = ref(db, 'photoConfirmations');
-    
-    const unsubscribe = onValue(confirmationsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const pending = Object.entries(data)
-          .map(([id, conf]) => ({
-            id,
-            ...conf
-          }))
-          .filter(conf => conf.status === 'pending');
-        setPendingConfirmations(pending);
-        setPendingCount(pending.length);
-      } else {
-        setPendingConfirmations([]);
-        setPendingCount(0);
-      }
-    });
+useEffect(() => {
+  const confirmationsRef = ref(db, 'photoConfirmations');
+  
+  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const pendingList = Object.entries(data)
+        .map(([id, conf]) => ({ id, ...conf }))
+        .filter(conf => conf.status === 'pending');
+      
+      setPendingConfirmations(pendingList);
+      setPendingCount(pendingList.length);
+    } else {
+      setPendingConfirmations([]);
+      setPendingCount(0);
+    }
+  });
 
-    return () => off(confirmationsRef);
-  }, []);
+  return () => off(confirmationsRef);
+}, []);
 
   useEffect(() => {
     const workersRef = ref(db, 'users');

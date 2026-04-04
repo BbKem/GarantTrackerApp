@@ -1,4 +1,4 @@
-// admin/PhotoConfirmationsTab.js
+// admin/PhotoConfirmationsTab.js - полная исправленная версия
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -47,14 +47,14 @@ const PhotoConfirmationsTab = () => {
       `Подтвердить ${confirmation.type === 'arrival' ? 'прибытие' : 'завершение'} задачи?`,
       async () => {
         try {
-          // Сначала обновляем подтверждение
+          // Обновляем статус подтверждения
           await update(ref(db, `photoConfirmations/${confirmation.id}`), {
             status: 'approved',
             approvedAt: Date.now(),
             approvedBy: 'admin'
           });
 
-          // Затем обновляем задачу
+          // Обновляем задачу
           const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
           
           if (confirmation.type === 'arrival') {
@@ -93,12 +93,13 @@ const PhotoConfirmationsTab = () => {
             rejectedAt: Date.now()
           });
           
-          // Если это прибытие и оно было отклонено - снимаем статус "на проверке"
+          // Если это прибытие - снимаем статус "на месте"
           if (confirmation.type === 'arrival') {
             const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
             await update(taskRef, {
               isOnSite: false,
-              confirmedByPhoto: false
+              confirmedByPhoto: null,
+              lastChecked: null
             });
           }
           
