@@ -14,9 +14,9 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { update, ref as dbRef, onValue, off, get } from 'firebase/database';
 import { db } from '../config';
+import { showAlert, showConfirm } from '../utils/notifications';
 
 const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
   const [image, setImage] = useState(null);
@@ -26,7 +26,6 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
   const [loadingArchive, setLoadingArchive] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Загружаем фото пользователя при открытии модального окна
   useEffect(() => {
     if (user && user.username) {
       const userRef = dbRef(db, `users/${user.username}`);
@@ -42,114 +41,54 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
     }
   }, [user, visible]);
 
-  // Функция для загрузки архивных задач
- const loadArchivedTasks = async () => {
-  if (!user || !user.username) return;
-  
-  setLoadingArchive(true);
-  try {
-    const archiveRef = dbRef(db, `archive/tasks`);
-    const snapshot = await get(archiveRef);
+  const loadArchivedTasks = async () => {
+    if (!user || !user.username) return;
     
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const allArchivedTasks = [];
+    setLoadingArchive(true);
+    try {
+      const archiveRef = dbRef(db, `archive/tasks`);
+      const snapshot = await get(archiveRef);
       
-      Object.entries(data).forEach(([workerId, workerTasks]) => {
-        if (workerTasks && typeof workerTasks === 'object') {
-          Object.entries(workerTasks).forEach(([taskId, taskData]) => {
-            if (taskData && typeof taskData === 'object') {
-              allArchivedTasks.push({
-                id: taskId,
-                assignedTo: workerId,
-                ...taskData
-              });
-            }
-          });
-        }
-      });
-      
-      allArchivedTasks.sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
-      setArchivedTasks(allArchivedTasks);
-    } else {
-      setArchivedTasks([]);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const allArchivedTasks = [];
+        
+        Object.entries(data).forEach(([workerId, workerTasks]) => {
+          if (workerTasks && typeof workerTasks === 'object') {
+            Object.entries(workerTasks).forEach(([taskId, taskData]) => {
+              if (taskData && typeof taskData === 'object') {
+                allArchivedTasks.push({
+                  id: taskId,
+                  assignedTo: workerId,
+                  ...taskData
+                });
+              }
+            });
+          }
+        });
+        
+        allArchivedTasks.sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
+        setArchivedTasks(allArchivedTasks);
+      } else {
+        setArchivedTasks([]);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки архива:', error);
+      showAlert('Ошибка', 'Не удалось загрузить архив задач: ' + error.message);
+    } finally {
+      setLoadingArchive(false);
+      setRefreshing(false);
     }
-  } catch (error) {
-    console.error('Ошибка загрузки архива:', error);
-    Alert.alert('Ошибка', 'Не удалось загрузить архив задач: ' + error.message);
-  } finally {
-    setLoadingArchive(false);
-    setRefreshing(false);
-  }
-};
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
     loadArchivedTasks();
   };
 
-  const pickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Разрешение требуется',
-          'Для выбора фото из галереи необходимо предоставить разрешение.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        await uploadImageAsBase64(result.assets[0].base64);
-      }
-    } catch (error) {
-      console.error('Ошибка выбора изображения:', error);
-      Alert.alert('Ошибка', 'Не удалось выбрать изображение');
-    }
-  };
-
-  const takePhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Разрешение требуется',
-          'Для съемки фото необходимо предоставить доступ к камере.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        await uploadImageAsBase64(result.assets[0].base64);
-      }
-    } catch (error) {
-      console.error('Ошибка съемки фото:', error);
-      Alert.alert('Ошибка', 'Не удалось сделать фото');
-    }
-  };
-
   const uploadImageAsBase64 = async (base64String) => {
     if (!user || !user.username) {
-      Alert.alert('Ошибка', 'Пользователь не найден');
+      showAlert('Ошибка', 'Пользователь не найден');
       return;
     }
 
@@ -157,11 +96,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
     const maxSize = 5 * 1024 * 1024;
 
     if (base64Size > maxSize) {
-      Alert.alert(
-        'Слишком большое изображение',
-        'Пожалуйста, выберите фото меньшего размера или уменьшите качество.',
-        [{ text: 'OK' }]
-      );
+      showAlert('Слишком большое изображение', 'Пожалуйста, выберите фото меньшего размера');
       return;
     }
 
@@ -174,118 +109,121 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
       });
 
       setImage(base64Data);
-      Alert.alert('Успех', 'Фото профиля обновлено!');
+      showAlert('Успех', 'Фото профиля обновлено!');
       
     } catch (error) {
       console.error('Ошибка загрузки:', error);
-      Alert.alert('Ошибка', 'Не удалось сохранить фото. Попробуйте еще раз.');
+      showAlert('Ошибка', 'Не удалось сохранить фото. Попробуйте еще раз.');
     } finally {
       setUploading(false);
     }
   };
 
-  const showImagePickerOptions = () => {
-  if (uploading) {
-    showAlert('Загрузка', 'Пожалуйста, дождитесь завершения текущей загрузки');
-    return;
-  }
-
-  // Для веба - сразу открываем выбор файла
-  if (Platform.OS === 'web') {
-    handlePickImage();
-    return;
-  }
-
-  // Для нативных платформ - показываем выбор
-  const { Alert } = require('react-native');
-  Alert.alert(
-    'Изменить фото профиля',
-    'Выберите источник',
-    [
-      { text: 'Сделать фото', onPress: handleTakePhoto },
-      { text: 'Выбрать из галереи', onPress: handlePickImage },
-      { text: 'Удалить текущее фото', onPress: removeCurrentPhoto, style: 'destructive' },
-      { text: 'Отмена', style: 'cancel' },
-    ]
-  );
-};
-
-const handlePickImage = async () => {
-  try {
-    // Для веба
-    if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/jpeg,image/png,image/jpg';
+  const handlePickImage = async () => {
+    try {
+      // Для веба
+      if (Platform.OS === 'web') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpeg,image/png,image/jpg';
+        
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              let base64 = reader.result;
+              if (base64.includes(',')) {
+                base64 = base64.split(',')[1];
+              }
+              await uploadImageAsBase64(base64);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        
+        input.click();
+        return;
+      }
       
-      input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            let base64 = reader.result;
-            if (base64.includes(',')) {
-              base64 = base64.split(',')[1];
-            }
-            await uploadImageAsBase64(base64);
-          };
-          reader.readAsDataURL(file);
-        }
-      };
+      // Для нативных платформ
+      const { launchImageLibraryAsync, MediaTypeOptions } = await import('expo-image-picker');
+      const { status } = await import('expo-image-picker').then(mod => mod.requestMediaLibraryPermissionsAsync());
       
-      input.click();
-      return;
-    }
-    
-    // Для нативных платформ
-    const result = await pickImage();
-    if (!result.canceled && result.assets && result.assets[0]) {
-      await uploadImageAsBase64(result.assets[0].base64);
-    }
-  } catch (error) {
-    console.error('Ошибка выбора изображения:', error);
-    showAlert('Ошибка', 'Не удалось выбрать изображение');
-  }
-};
+      if (status !== 'granted') {
+        showAlert('Разрешение требуется', 'Для выбора фото из галереи необходимо предоставить разрешение');
+        return;
+      }
 
-const handleTakePhoto = async () => {
-  try {
-    // Для веба - используем тот же подход что и pick
-    if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/jpeg,image/png,image/jpg';
-      input.capture = 'environment';
-      
-      input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            let base64 = reader.result;
-            if (base64.includes(',')) {
-              base64 = base64.split(',')[1];
-            }
-            await uploadImageAsBase64(base64);
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-      
-      input.click();
-      return;
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        await uploadImageAsBase64(result.assets[0].base64);
+      }
+    } catch (error) {
+      console.error('Ошибка выбора изображения:', error);
+      showAlert('Ошибка', 'Не удалось выбрать изображение');
     }
-    
-    // Для нативных платформ
-    const result = await takePhoto();
-    if (!result.canceled && result.assets && result.assets[0]) {
-      await uploadImageAsBase64(result.assets[0].base64);
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      // Для веба - используем тот же подход что и pick
+      if (Platform.OS === 'web') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpeg,image/png,image/jpg';
+        input.capture = 'environment';
+        
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              let base64 = reader.result;
+              if (base64.includes(',')) {
+                base64 = base64.split(',')[1];
+              }
+              await uploadImageAsBase64(base64);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        
+        input.click();
+        return;
+      }
+      
+      // Для нативных платформ
+      const { launchCameraAsync } = await import('expo-image-picker');
+      const { status } = await import('expo-image-picker').then(mod => mod.requestCameraPermissionsAsync());
+      
+      if (status !== 'granted') {
+        showAlert('Разрешение требуется', 'Для съемки фото необходимо предоставить доступ к камере');
+        return;
+      }
+
+      const result = await launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        await uploadImageAsBase64(result.assets[0].base64);
+      }
+    } catch (error) {
+      console.error('Ошибка съемки фото:', error);
+      showAlert('Ошибка', 'Не удалось сделать фото');
     }
-  } catch (error) {
-    console.error('Ошибка съемки фото:', error);
-    showAlert('Ошибка', 'Не удалось сделать фото');
-  }
-};
+  };
 
   const removeCurrentPhoto = async () => {
     if (!user || !user.username) return;
@@ -296,11 +234,40 @@ const handleTakePhoto = async () => {
       });
       
       setImage(null);
-      Alert.alert('Успех', 'Фото профиля удалено');
+      showAlert('Успех', 'Фото профиля удалено');
     } catch (error) {
       console.error('Ошибка удаления фото:', error);
-      Alert.alert('Ошибка', 'Не удалось удалить фото');
+      showAlert('Ошибка', 'Не удалось удалить фото');
     }
+  };
+
+  const showImagePickerOptions = () => {
+    if (uploading) {
+      showAlert('Загрузка', 'Пожалуйста, дождитесь завершения текущей загрузки');
+      return;
+    }
+
+    // Для веба - сразу открываем выбор файла
+    if (Platform.OS === 'web') {
+      handlePickImage();
+      return;
+    }
+
+    // Для нативных платформ - показываем выбор
+    Alert.alert(
+      'Изменить фото профиля',
+      'Выберите источник',
+      [
+        { text: 'Сделать фото', onPress: handleTakePhoto },
+        { text: 'Выбрать из галереи', onPress: handlePickImage },
+        { text: 'Удалить текущее фото', onPress: removeCurrentPhoto, style: 'destructive' },
+        { text: 'Отмена', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleSignOut = () => {
+    showConfirm('Выход', 'Вы уверены, что хотите выйти?', onSignOut);
   };
 
   const getAvatarSource = () => {
@@ -341,7 +308,6 @@ const handleTakePhoto = async () => {
         <Text style={styles.taskDetail}><Text style={styles.detailLabel}>В архиве с:</Text> {formatDate(item.archivedAt)}</Text>
       </View>
 
-      {/* Статус задачи */}
       <View style={styles.statusContainer}>
         <View style={[
           styles.statusDot,
@@ -370,117 +336,117 @@ const handleTakePhoto = async () => {
             <Ionicons name="close" size={24} color="#8FA3BF" />
           </TouchableOpacity>
           <ScrollView 
-  showsVerticalScrollIndicator={false}
-  contentContainerStyle={styles.scrollContent}
->
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarContainer}>
-              <Image 
-                source={getAvatarSource()}
-                style={styles.avatar}
-              />
-              <TouchableOpacity 
-                style={[
-                  styles.cameraButton,
-                  uploading && styles.cameraButtonDisabled
-                ]}
-                onPress={showImagePickerOptions}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="camera" size={20} color="#fff" />
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.profileHeader}>
+              <View style={styles.avatarContainer}>
+                <Image 
+                  source={getAvatarSource()}
+                  style={styles.avatar}
+                />
+                <TouchableOpacity 
+                  style={[
+                    styles.cameraButton,
+                    uploading && styles.cameraButtonDisabled
+                  ]}
+                  onPress={showImagePickerOptions}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="camera" size={20} color="#fff" />
+                  )}
+                </TouchableOpacity>
+                {uploading && (
+                  <View style={styles.uploadingOverlay}>
+                    <ActivityIndicator size="large" color="#1F4E8C" />
+                    <Text style={styles.uploadingText}>Загрузка...</Text>
+                  </View>
                 )}
-              </TouchableOpacity>
-              {uploading && (
-                <View style={styles.uploadingOverlay}>
-                  <ActivityIndicator size="large" color="#1F4E8C" />
-                  <Text style={styles.uploadingText}>Загрузка...</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.profileName}>{user?.username}</Text>
-            <Text style={styles.profileRole}>
-              {user?.userType === 'admin' ? 'Администратор' : 'Работник'}
-            </Text>
-          </View>
-
-          <View style={styles.profileInfo}>
-            <View style={styles.infoItem}>
-              <Ionicons name="person" size={20} color="#1F4E8C" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Логин</Text>
-                <Text style={styles.infoValue}>{user?.username}</Text>
               </View>
+              <Text style={styles.profileName}>{user?.username}</Text>
+              <Text style={styles.profileRole}>
+                {user?.userType === 'admin' ? 'Администратор' : 'Работник'}
+              </Text>
             </View>
 
-            <View style={styles.infoItem}>
-              <Ionicons name="lock-closed" size={20} color="#1F4E8C" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Пароль</Text>
-                <Text style={styles.infoValue}>••••••••</Text>
-              </View>
-            </View>
-
-            <View style={styles.infoItem}>
-              <Ionicons name="shield-checkmark" size={20} color="#1F4E8C" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Роль</Text>
-                <Text style={styles.infoValue}>
-                  {user?.userType === 'admin' ? 'Администратор системы' : 'Работник'}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.infoItem}>
-              <Ionicons name="images" size={20} color="#1F4E8C" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Фото профиля</Text>
-                <Text style={styles.infoValue}>
-                  {image ? 'Загружено' : 'Не загружено'}
-                </Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.editButton}
-                onPress={showImagePickerOptions}
-              >
-                <Text style={styles.editButtonText}>
-                  {image ? 'Изменить' : 'Добавить'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {user?.userType === 'admin' && (
+            <View style={styles.profileInfo}>
               <View style={styles.infoItem}>
-                <Ionicons name="archive" size={20} color="#1F4E8C" />
+                <Ionicons name="person" size={20} color="#1F4E8C" />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Архив задач</Text>
-                  <Text style={styles.infoValue}>Просмотр архивных задач</Text>
+                  <Text style={styles.infoLabel}>Логин</Text>
+                  <Text style={styles.infoValue}>{user?.username}</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Ionicons name="lock-closed" size={20} color="#1F4E8C" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Пароль</Text>
+                  <Text style={styles.infoValue}>••••••••</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Ionicons name="shield-checkmark" size={20} color="#1F4E8C" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Роль</Text>
+                  <Text style={styles.infoValue}>
+                    {user?.userType === 'admin' ? 'Администратор системы' : 'Работник'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Ionicons name="images" size={20} color="#1F4E8C" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Фото профиля</Text>
+                  <Text style={styles.infoValue}>
+                    {image ? 'Загружено' : 'Не загружено'}
+                  </Text>
                 </View>
                 <TouchableOpacity 
                   style={styles.editButton}
-                  onPress={() => {
-                    loadArchivedTasks();
-                    setArchiveModalVisible(true);
-                  }}
+                  onPress={showImagePickerOptions}
                 >
-                  <Text style={styles.editButtonText}>Открыть</Text>
+                  <Text style={styles.editButtonText}>
+                    {image ? 'Изменить' : 'Добавить'}
+                  </Text>
                 </TouchableOpacity>
               </View>
-            )}
-          </View>
+
+              {user?.userType === 'admin' && (
+                <View style={styles.infoItem}>
+                  <Ionicons name="archive" size={20} color="#1F4E8C" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Архив задач</Text>
+                    <Text style={styles.infoValue}>Просмотр архивных задач</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.editButton}
+                    onPress={() => {
+                      loadArchivedTasks();
+                      setArchiveModalVisible(true);
+                    }}
+                  >
+                    <Text style={styles.editButtonText}>Открыть</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
 
             <TouchableOpacity 
               style={styles.logoutButton} 
-              onPress={onSignOut}
+              onPress={handleSignOut}
               disabled={uploading}
             >
               <Ionicons name="log-out" size={20} color="#FF6B6B" />
               <Text style={styles.logoutButtonText}>Выйти из системы</Text>
             </TouchableOpacity>
-        </ScrollView>
-          {/* Модальное окно архива */}
+          </ScrollView>
+          
           <Modal
             animationType="slide"
             transparent={true}
@@ -564,24 +530,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     width: '95%',
-    height: '85%', // Фиксированная высота
+    height: '85%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-  },
-  archiveHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  archiveContent: {
-    flex: 1,
-  },
-  archiveScrollView: {
-    flex: 1,
   },
   closeButton: {
     position: 'absolute',
@@ -687,11 +641,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#1F4E8C',
     fontWeight: '500',
-  },
-  profileActions: {
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 20,
   },
   logoutButton: {
     flexDirection: 'row',
@@ -819,11 +768,10 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
   },
   scrollContent: {
-  paddingBottom: 20,
-},
+    paddingBottom: 20,
+  },
 });
 
 export default ProfileModal;
