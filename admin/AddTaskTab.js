@@ -1,10 +1,10 @@
+// admin/AddTaskTab.js - добавьте импорт и состояние для пикера
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TextInput, 
-  Alert, 
   ActivityIndicator,
   FlatList,
   Platform,
@@ -12,20 +12,19 @@ import {
   ScrollView,
   KeyboardAvoidingView
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { ref, set } from 'firebase/database';
 import { db } from '../config';
 import { geocodeAddress } from '../utils/geocoding';
 import WorkerSelector from '../common/WorkerSelector';
 import { formatAddress } from '../utils/helpers';
-import { Ionicons } from '@expo/vector-icons';
+import { showAlert } from '../utils/notifications';
+import { TimePickerModal } from '../utils/dateTimePicker';
 
 const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker }) => {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskLocation, setTaskLocation] = useState('');
   const [taskTime, setTaskTime] = useState('');
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isFetchingAddresses, setIsFetchingAddresses] = useState(false);
@@ -61,28 +60,9 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker }) => {
     }
   };
 
-  const handleTimeChange = (event, time) => {
-    // Закрываем пикер после выбора времени
-    if (Platform.OS === 'ios') {
-      setShowTimePicker(false);
-    }
-    
-    if (time) {
-      setSelectedTime(time);
-      const hours = time.getHours().toString().padStart(2, '0');
-      const minutes = time.getMinutes().toString().padStart(2, '0');
-      setTaskTime(`${hours}:${minutes}`);
-    }
-    
-    // Для Android пикер закрывается автоматически после выбора
-    if (Platform.OS === 'android') {
-      setShowTimePicker(false);
-    }
-  };
-
   const handleAddTask = async () => {
     if (!taskTitle || !taskLocation || !taskTime || !selectedWorker) {
-      Alert.alert('Ошибка', 'Заполните все поля');
+      showAlert('Ошибка', 'Заполните все поля');
       return;
     }
 
@@ -106,9 +86,9 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker }) => {
       setTaskLocation('');
       setTaskTime('');
       setShowSuggestions(false);
-      Alert.alert('Успех', 'Задача создана!');
+      showAlert('Успех', 'Задача создана!');
     } catch (error) {
-      Alert.alert('Ошибка', error.message);
+      showAlert('Ошибка', error.message);
     } finally {
       setIsFetchingAddresses(false);
     }
@@ -174,10 +154,7 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker }) => {
                           setShowSuggestions(false);
                         }}
                       >
-                        <Ionicons name="location-outline" size={16} color="#8FA3BF" />
-                        <Text style={styles.suggestionText}>
-                          {formatAddress(item)}
-                        </Text>
+                        <Text style={styles.suggestionText}>📍 {formatAddress(item)}</Text>
                       </TouchableOpacity>
                     )}
                     keyExtractor={(item) => item.place_id.toString()}
@@ -192,25 +169,21 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker }) => {
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Время выполнения</Text>
           <TouchableOpacity 
-            onPress={() => setShowTimePicker(true)}
+            onPress={() => setTimePickerVisible(true)}
             style={styles.timeInput}
           >
-            <Ionicons name="time-outline" size={20} color="#8FA3BF" />
             <Text style={taskTime ? styles.timeText : styles.timePlaceholder}>
-              {taskTime || 'Выберите время'}
+              {taskTime || 'Выберите время ⏰'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {showTimePicker && (
-          <DateTimePicker
-            value={selectedTime}
-            mode="time"
-            is24Hour={true}
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleTimeChange}
-          />
-        )}
+        <TimePickerModal
+          visible={timePickerVisible}
+          onClose={() => setTimePickerVisible(false)}
+          onConfirm={(time) => setTaskTime(time)}
+          currentTime={taskTime}
+        />
 
         <TouchableOpacity
           style={[styles.addButton, isFetchingAddresses && styles.addButtonDisabled]}
@@ -220,14 +193,10 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker }) => {
           {isFetchingAddresses ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <>
-              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.addButtonText}>Добавить задачу</Text>
-            </>
+            <Text style={styles.addButtonText}>➕ Добавить задачу</Text>
           )}
         </TouchableOpacity>
         
-        {/* Добавляем отступ снизу для удобства скролла */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -274,25 +243,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
     marginTop: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   suggestionsLoader: {
     padding: 20,
   },
   suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-    gap: 8,
   },
   suggestionText: {
-    flex: 1,
     fontSize: 14,
     color: '#1A1A1A',
   },
@@ -302,18 +262,14 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    gap: 10,
   },
   timeText: {
-    flex: 1,
     fontSize: 15,
     color: '#1A1A1A',
   },
   timePlaceholder: {
-    flex: 1,
     fontSize: 15,
     color: '#8FA3BF',
   },
@@ -321,10 +277,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1F4E8C',
     borderRadius: 10,
     paddingVertical: 14,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
     marginTop: 8,
   },
   addButtonDisabled: {

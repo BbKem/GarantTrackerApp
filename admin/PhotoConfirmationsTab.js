@@ -7,12 +7,11 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Alert,
   ActivityIndicator
 } from 'react-native';
 import { ref, onValue, off, update } from 'firebase/database';
 import { db } from '../config';
-import { Ionicons } from '@expo/vector-icons';
+import { showAlert, showConfirm } from '../utils/notifications';
 
 const PhotoConfirmationsTab = () => {
   const [confirmations, setConfirmations] = useState([]);
@@ -42,76 +41,63 @@ const PhotoConfirmationsTab = () => {
     return () => off(confirmationsRef);
   }, []);
 
-  const handleApprove = async (confirmation) => {
-    Alert.alert(
+  const handleApprove = (confirmation) => {
+    showConfirm(
       'Подтверждение',
       `Подтвердить ${confirmation.type === 'arrival' ? 'прибытие' : 'завершение'} задачи?`,
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Подтвердить',
-          onPress: async () => {
-            try {
-              await update(ref(db, `photoConfirmations/${confirmation.id}`), {
-                status: 'approved',
-                approvedAt: Date.now(),
-                approvedBy: 'admin'
-              });
+      async () => {
+        try {
+          await update(ref(db, `photoConfirmations/${confirmation.id}`), {
+            status: 'approved',
+            approvedAt: Date.now(),
+            approvedBy: 'admin'
+          });
 
-              const taskUpdates = {};
-              if (confirmation.type === 'arrival') {
-                taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/isOnSite`] = true;
-                taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/lastChecked`] = new Date().toISOString();
-                taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/confirmedByPhoto`] = true;
-              } else {
-                taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completed`] = true;
-                taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completedAt`] = new Date().toISOString();
-                taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completedByPhoto`] = true;
-              }
-
-              await update(ref(db), taskUpdates);
-              Alert.alert('Успех', 'Подтверждение принято');
-            } catch (error) {
-              console.error('Ошибка подтверждения:', error);
-              Alert.alert('Ошибка', 'Не удалось подтвердить');
-            }
+          const taskUpdates = {};
+          if (confirmation.type === 'arrival') {
+            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/isOnSite`] = true;
+            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/lastChecked`] = new Date().toISOString();
+            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/confirmedByPhoto`] = true;
+          } else {
+            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completed`] = true;
+            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completedAt`] = new Date().toISOString();
+            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completedByPhoto`] = true;
           }
+
+          await update(ref(db), taskUpdates);
+          showAlert('Успех', 'Подтверждение принято');
+        } catch (error) {
+          console.error('Ошибка подтверждения:', error);
+          showAlert('Ошибка', 'Не удалось подтвердить');
         }
-      ]
+      }
     );
   };
 
-  const handleReject = async (confirmationId) => {
-    Alert.alert(
+  const handleReject = (confirmationId) => {
+    showConfirm(
       'Отклонение',
       'Вы уверены, что хотите отклонить этот запрос?',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Отклонить',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await update(ref(db, `photoConfirmations/${confirmationId}`), {
-                status: 'rejected',
-                rejectedAt: Date.now()
-              });
-              Alert.alert('Успех', 'Запрос отклонен');
-            } catch (error) {
-              console.error('Ошибка отклонения:', error);
-              Alert.alert('Ошибка', 'Не удалось отклонить запрос');
-            }
-          }
+      async () => {
+        try {
+          await update(ref(db, `photoConfirmations/${confirmationId}`), {
+            status: 'rejected',
+            rejectedAt: Date.now()
+          });
+          showAlert('Успех', 'Запрос отклонен');
+        } catch (error) {
+          console.error('Ошибка отклонения:', error);
+          showAlert('Ошибка', 'Не удалось отклонить запрос');
         }
-      ]
+      }
     );
   };
 
   const getTypeConfig = (type) => {
     if (type === 'arrival') {
-      return { text: 'Прибытие', icon: 'location-outline', color: '#1F4E8C', bgColor: '#E8F0FA' };
+      return { text: 'Прибытие', icon: '📍', color: '#1F4E8C', bgColor: '#E8F0FA' };
     }
-    return { text: 'Завершение', icon: 'checkmark-circle-outline', color: '#4CAF50', bgColor: '#E8F5E9' };
+    return { text: 'Завершение', icon: '✅', color: '#4CAF50', bgColor: '#E8F5E9' };
   };
 
   const renderConfirmationItem = ({ item }) => {
@@ -121,7 +107,9 @@ const PhotoConfirmationsTab = () => {
       <View style={styles.confirmationCard}>
         <View style={styles.cardHeader}>
           <View style={[styles.typeBadge, { backgroundColor: typeConfig.bgColor }]}>
-            <Ionicons name={typeConfig.icon} size={14} color={typeConfig.color} />
+            <Text style={[styles.typeIcon, { color: typeConfig.color }]}>
+              {typeConfig.icon}
+            </Text>
             <Text style={[styles.typeText, { color: typeConfig.color }]}>
               {typeConfig.text}
             </Text>
@@ -132,14 +120,14 @@ const PhotoConfirmationsTab = () => {
         </View>
 
         <View style={styles.workerInfo}>
-          <Ionicons name="person-outline" size={18} color="#1F4E8C" />
+          <Text style={styles.workerIcon}>👤</Text>
           <Text style={styles.workerName}>{item.workerName}</Text>
         </View>
 
         <View style={styles.taskInfo}>
           <Text style={styles.taskTitle}>{item.taskTitle}</Text>
           <View style={styles.addressRow}>
-            <Ionicons name="location-outline" size={12} color="#8FA3BF" />
+            <Text style={styles.addressIcon}>📍</Text>
             <Text style={styles.taskAddress}>{item.location}</Text>
           </View>
         </View>
@@ -149,7 +137,7 @@ const PhotoConfirmationsTab = () => {
         </View>
 
         <View style={styles.attemptInfo}>
-          <Ionicons name="camera-outline" size={12} color="#FF9800" />
+          <Text style={styles.attemptIcon}>📷</Text>
           <Text style={styles.attemptText}>
             Попытка #{item.attempts}
           </Text>
@@ -160,16 +148,14 @@ const PhotoConfirmationsTab = () => {
             style={[styles.actionButton, styles.approveButton]}
             onPress={() => handleApprove(item)}
           >
-            <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>Подтвердить</Text>
+            <Text style={styles.actionButtonText}>✓ Подтвердить</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={[styles.actionButton, styles.rejectButton]}
             onPress={() => handleReject(item.id)}
           >
-            <Ionicons name="close" size={18} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>Отклонить</Text>
+            <Text style={styles.actionButtonText}>✗ Отклонить</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -187,7 +173,7 @@ const PhotoConfirmationsTab = () => {
   if (confirmations.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="camera-outline" size={64} color="#E2E8F0" />
+        <Text style={styles.emptyEmoji}>📷</Text>
         <Text style={styles.emptyText}>Нет ожидающих подтверждений</Text>
         <Text style={styles.emptySubtext}>
           Запросы на фото-подтверждение появятся здесь
@@ -198,10 +184,9 @@ const PhotoConfirmationsTab = () => {
 
   return (
     <View style={styles.container}>
-      {/* Счётчик ожидающих подтверждений */}
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>
-          Всего на проверке: {confirmations.length}
+          📋 Всего на проверке: {confirmations.length}
         </Text>
       </View>
 
@@ -237,6 +222,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  emptyEmoji: {
+    fontSize: 64,
   },
   emptyText: {
     fontSize: 16,
@@ -275,6 +263,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
   },
+  typeIcon: {
+    fontSize: 12,
+  },
   typeText: {
     fontSize: 12,
     fontWeight: '500',
@@ -288,6 +279,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
     gap: 8,
+  },
+  workerIcon: {
+    fontSize: 16,
   },
   workerName: {
     fontSize: 14,
@@ -308,6 +302,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  addressIcon: {
+    fontSize: 12,
+  },
   taskAddress: {
     flex: 1,
     fontSize: 13,
@@ -324,6 +321,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     backgroundColor: '#F4F7FB',
+    resizeMode: 'cover',
   },
   attemptInfo: {
     flexDirection: 'row',
@@ -334,6 +332,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF8E7',
     borderRadius: 8,
     gap: 6,
+  },
+  attemptIcon: {
+    fontSize: 12,
   },
   attemptText: {
     color: '#FF9800',
