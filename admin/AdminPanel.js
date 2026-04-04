@@ -1,4 +1,4 @@
-// admin/AdminPanel.js - исправленная версия
+// admin/AdminPanel.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,35 +10,67 @@ import ActiveTasksTab from './ActiveTasksTab';
 import CompletedTasksTab from './CompletedTasksTab';
 import PhotoConfirmationsTab from './PhotoConfirmationsTab';
 
-const AdminPanel = ({ user, onSignOut, tasks }) => {
+const AdminPanel = ({ user, onSignOut }) => {
   const [selectedWorker, setSelectedWorker] = useState('');
   const [workers, setWorkers] = useState([]);
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
-const [pendingConfirmations, setPendingConfirmations] = useState([]);
-const [pendingCount, setPendingCount] = useState(0);
+  const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [tasks, setTasks] = useState([]);
 
-useEffect(() => {
-  const confirmationsRef = ref(db, 'photoConfirmations');
-  
-  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const pendingList = Object.entries(data)
-        .map(([id, conf]) => ({ id, ...conf }))
-        .filter(conf => conf.status === 'pending');
-      
-      setPendingConfirmations(pendingList);
-      setPendingCount(pendingList.length);
-    } else {
-      setPendingConfirmations([]);
-      setPendingCount(0);
-    }
-  });
+  // Подписка на фото-подтверждения в реальном времени
+  useEffect(() => {
+    const confirmationsRef = ref(db, 'photoConfirmations');
+    
+    const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const pendingList = Object.entries(data)
+          .map(([id, conf]) => ({ id, ...conf }))
+          .filter(conf => conf.status === 'pending');
+        
+        setPendingConfirmations(pendingList);
+        setPendingCount(pendingList.length);
+      } else {
+        setPendingConfirmations([]);
+        setPendingCount(0);
+      }
+    });
 
-  return () => off(confirmationsRef);
-}, []);
+    return () => off(confirmationsRef);
+  }, []);
 
+  // Подписка на задачи всех работников в реальном времени
+  useEffect(() => {
+    const tasksRef = ref(db, 'tasks');
+    
+    const unsubscribe = onValue(tasksRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const allTasks = [];
+        const tasksData = snapshot.val();
+        
+        // Преобразуем структуру tasks/workerId/taskId в плоский массив
+        Object.entries(tasksData).forEach(([workerId, workerTasks]) => {
+          Object.entries(workerTasks).forEach(([taskId, taskData]) => {
+            allTasks.push({
+              id: taskId,
+              assignedTo: workerId,
+              ...taskData
+            });
+          });
+        });
+        
+        setTasks(allTasks);
+      } else {
+        setTasks([]);
+      }
+    });
+
+    return () => off(tasksRef);
+  }, []);
+
+  // Загрузка списка работников
   useEffect(() => {
     const workersRef = ref(db, 'users');
     get(workersRef).then((snapshot) => {

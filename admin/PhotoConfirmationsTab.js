@@ -84,46 +84,49 @@ const PhotoConfirmationsTab = () => {
 };
 
   const handleReject = (confirmation) => {
-    showConfirm(
-      'Отклонение',
-      'Вы уверены, что хотите отклонить этот запрос?',
-      async () => {
-        try {
-          // Обновляем статус подтверждения
-          await update(ref(db, `photoConfirmations/${confirmation.id}`), {
-            status: 'rejected',
-            rejectedAt: Date.now()
+  showConfirm(
+    'Отклонение',
+    'Вы уверены, что хотите отклонить этот запрос?',
+    async () => {
+      try {
+        // Обновляем статус подтверждения
+        await update(ref(db, `photoConfirmations/${confirmation.id}`), {
+          status: 'rejected',
+          rejectedAt: Date.now()
+        });
+        
+        // Обновляем задачу в зависимости от типа
+        const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
+        
+        if (confirmation.type === 'arrival') {
+          // Отклонение прибытия: возвращаем в статус "Не подтверждено"
+          await update(taskRef, {
+            isOnSite: false,
+            confirmedByPhoto: null,
+            lastChecked: null,
+            completed: false, // Добавьте эту строку для безопасности
+            completedAt: null // Добавьте эту строку для безопасности
           });
-          
-          // Обновляем задачу в зависимости от типа
-          const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
-          
-          if (confirmation.type === 'arrival') {
-            // Отклонение прибытия: возвращаем в статус "Не подтверждено"
-            await update(taskRef, {
-              isOnSite: false,
-              confirmedByPhoto: null,
-              lastChecked: null
-            });
-          } else {
-            // Отклонение завершения: возвращаем задачу в статус "На месте"
-            await update(taskRef, {
-              completed: false,
-              completedAt: null,
-              completedByPhoto: null,
-              isOnSite: true
-            });
-          }
-          
-          showAlert('Успех', 'Запрос отклонен');
-          
-        } catch (error) {
-          console.error('Ошибка отклонения:', error);
-          showAlert('Ошибка', 'Не удалось отклонить запрос');
+        } else {
+          // Отклонение завершения: возвращаем задачу в статус "На месте"
+          await update(taskRef, {
+            completed: false,
+            completedAt: null,
+            completedByPhoto: null,
+            isOnSite: true,
+            lastChecked: new Date().toISOString() // Добавьте эту строку
+          });
         }
+        
+        showAlert('Успех', 'Запрос отклонен');
+        
+      } catch (error) {
+        console.error('Ошибка отклонения:', error);
+        showAlert('Ошибка', 'Не удалось отклонить запрос');
       }
-    );
-  };
+    }
+  );
+};
 
   const getTypeConfig = (type) => {
     if (type === 'arrival') {
