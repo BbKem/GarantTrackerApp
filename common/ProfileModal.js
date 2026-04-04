@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
-  ScrollView
+  ScrollView,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -184,35 +185,107 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
   };
 
   const showImagePickerOptions = () => {
-    if (uploading) {
-      Alert.alert('Загрузка', 'Пожалуйста, дождитесь завершения текущей загрузки');
+  if (uploading) {
+    showAlert('Загрузка', 'Пожалуйста, дождитесь завершения текущей загрузки');
+    return;
+  }
+
+  // Для веба - сразу открываем выбор файла
+  if (Platform.OS === 'web') {
+    handlePickImage();
+    return;
+  }
+
+  // Для нативных платформ - показываем выбор
+  const { Alert } = require('react-native');
+  Alert.alert(
+    'Изменить фото профиля',
+    'Выберите источник',
+    [
+      { text: 'Сделать фото', onPress: handleTakePhoto },
+      { text: 'Выбрать из галереи', onPress: handlePickImage },
+      { text: 'Удалить текущее фото', onPress: removeCurrentPhoto, style: 'destructive' },
+      { text: 'Отмена', style: 'cancel' },
+    ]
+  );
+};
+
+const handlePickImage = async () => {
+  try {
+    // Для веба
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/jpeg,image/png,image/jpg';
+      
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            let base64 = reader.result;
+            if (base64.includes(',')) {
+              base64 = base64.split(',')[1];
+            }
+            await uploadImageAsBase64(base64);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      
+      input.click();
       return;
     }
+    
+    // Для нативных платформ
+    const result = await pickImage();
+    if (!result.canceled && result.assets && result.assets[0]) {
+      await uploadImageAsBase64(result.assets[0].base64);
+    }
+  } catch (error) {
+    console.error('Ошибка выбора изображения:', error);
+    showAlert('Ошибка', 'Не удалось выбрать изображение');
+  }
+};
 
-    Alert.alert(
-      'Изменить фото профиля',
-      'Выберите источник',
-      [
-        {
-          text: 'Сделать фото',
-          onPress: takePhoto,
-        },
-        {
-          text: 'Выбрать из галереи',
-          onPress: pickImage,
-        },
-        {
-          text: 'Удалить текущее фото',
-          onPress: removeCurrentPhoto,
-          style: 'destructive',
-        },
-        {
-          text: 'Отмена',
-          style: 'cancel',
-        },
-      ]
-    );
-  };
+const handleTakePhoto = async () => {
+  try {
+    // Для веба - используем тот же подход что и pick
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/jpeg,image/png,image/jpg';
+      input.capture = 'environment';
+      
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            let base64 = reader.result;
+            if (base64.includes(',')) {
+              base64 = base64.split(',')[1];
+            }
+            await uploadImageAsBase64(base64);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      
+      input.click();
+      return;
+    }
+    
+    // Для нативных платформ
+    const result = await takePhoto();
+    if (!result.canceled && result.assets && result.assets[0]) {
+      await uploadImageAsBase64(result.assets[0].base64);
+    }
+  } catch (error) {
+    console.error('Ошибка съемки фото:', error);
+    showAlert('Ошибка', 'Не удалось сделать фото');
+  }
+};
 
   const removeCurrentPhoto = async () => {
     if (!user || !user.username) return;
