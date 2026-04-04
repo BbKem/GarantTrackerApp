@@ -1,17 +1,23 @@
-// admin/ActiveTasksTab.js
-import React from 'react';
+// admin/ActiveTasksTab.js - исправленная версия
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
 
 const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations }) => {
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Принудительная перерисовка при изменении pendingConfirmations
+  useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [pendingConfirmations]);
+
   // Фильтруем активные задачи для выбранного работника
   const activeTasks = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
 
   // Функция для получения статуса задачи
   const getTaskStatus = (task) => {
-    // Проверяем, есть ли ожидающие подтверждения для этой задачи
     const hasPendingArrival = pendingConfirmations?.some(
       p => p.taskId === task.id && p.type === 'arrival' && p.status === 'pending'
     );
@@ -61,13 +67,8 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
     );
   };
 
-  // Добавляем ключ для перерисовки при изменении pendingConfirmations
-  const key = React.useMemo(() => {
-    return JSON.stringify(pendingConfirmations?.map(p => p.id));
-  }, [pendingConfirmations]);
-
   return (
-    <View style={styles.tabContainer}>
+    <View key={refreshKey} style={styles.tabContainer}>
       <WorkerSelector 
         selectedWorker={selectedWorker}
         workers={workers}
@@ -81,7 +82,6 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
       </View>
 
       <TaskList 
-        key={key}
         tasks={activeTasks}
         renderTaskItem={renderTaskItem}
         emptyMessage="Нет активных задач"
