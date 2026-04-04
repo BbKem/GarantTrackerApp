@@ -19,16 +19,8 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
       p => p.taskId === task.id && p.type === 'completion' && p.status === 'pending'
     );
 
-    // Если задача завершена
-    if (task.completed) return 'completed';
-    
-    // Если есть ожидающие подтверждения
     if (hasPendingArrival || hasPendingCompletion) return 'pending';
-    
-    // Если на месте
     if (task.isOnSite) return 'onSite';
-    
-    // Иначе - не подтверждено
     return 'offSite';
   };
 
@@ -38,8 +30,6 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
         return { text: 'На проверке', color: '#FF9800', icon: '⏳' };
       case 'onSite':
         return { text: 'На месте', color: '#4CAF50', icon: '📍' };
-      case 'offSite':
-        return { text: 'Не подтверждено', color: '#FF6B6B', icon: '⚠️' };
       default:
         return { text: 'Не подтверждено', color: '#FF6B6B', icon: '⚠️' };
     }
@@ -52,7 +42,6 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
 
     return (
       <TaskCard task={item} isPending={isPending}>
-        {/* Статус задачи */}
         <View style={styles.statusContainer}>
           <Text style={styles.statusIcon}>{statusConfig.icon}</Text>
           <Text style={[styles.statusText, { color: statusConfig.color }]}>
@@ -72,16 +61,19 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
     );
   };
 
+  // Добавляем ключ для перерисовки при изменении pendingConfirmations
+  const key = React.useMemo(() => {
+    return JSON.stringify(pendingConfirmations?.map(p => p.id));
+  }, [pendingConfirmations]);
+
   return (
     <View style={styles.tabContainer}>
-      {/* Выбор работника */}
       <WorkerSelector 
         selectedWorker={selectedWorker}
         workers={workers}
         setSelectedWorker={setSelectedWorker}
       />
 
-      {/* Счётчик активных задач */}
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>
           📋 Всего активных задач: {activeTasks.length}
@@ -89,6 +81,7 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
       </View>
 
       <TaskList 
+        key={key}
         tasks={activeTasks}
         renderTaskItem={renderTaskItem}
         emptyMessage="Нет активных задач"

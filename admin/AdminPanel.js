@@ -1,7 +1,6 @@
-// admin/AdminPanel.js - исправленная версия
+// admin/AdminPanel.js - полная версия с правильной передачей
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { ref, get, onValue, off } from 'firebase/database';
 import { db } from '../config';
 import ProfileModal from '../common/ProfileModal';
@@ -15,30 +14,38 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [workers, setWorkers] = useState([]);
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
-const [pendingConfirmations, setPendingConfirmations] = useState([]);
-const [pendingCount, setPendingCount] = useState(0);
+  const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
 
-useEffect(() => {
-  const confirmationsRef = ref(db, 'photoConfirmations');
-  
-  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const pendingList = Object.entries(data)
-        .map(([id, conf]) => ({ id, ...conf }))
-        .filter(conf => conf.status === 'pending');
+  // Подписка на фото-подтверждения в реальном времени
+  useEffect(() => {
+    const confirmationsRef = ref(db, 'photoConfirmations');
+    
+    const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+      console.log('🔄 AdminPanel: Получены обновления фото-подтверждений');
       
-      setPendingConfirmations(pendingList);
-      setPendingCount(pendingList.length);
-    } else {
-      setPendingConfirmations([]);
-      setPendingCount(0);
-    }
-  });
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const pendingList = Object.entries(data)
+          .map(([id, conf]) => ({ 
+            id, 
+            ...conf 
+          }))
+          .filter(conf => conf.status === 'pending');
+        
+        console.log(`📋 AdminPanel: ${pendingList.length} ожидающих подтверждений`);
+        setPendingConfirmations([...pendingList]); // Создаём новый массив
+        setPendingCount(pendingList.length);
+      } else {
+        setPendingConfirmations([]);
+        setPendingCount(0);
+      }
+    });
 
-  return () => off(confirmationsRef);
-}, []);
+    return () => off(confirmationsRef);
+  }, []);
 
+  // Загрузка списка работников
   useEffect(() => {
     const workersRef = ref(db, 'users');
     get(workersRef).then((snapshot) => {
@@ -88,7 +95,6 @@ useEffect(() => {
     }
   };
 
-  // Получаем название текущей вкладки
   const getTabTitle = () => {
     switch (activeTab) {
       case 'add': return 'Добавление задачи';
@@ -101,7 +107,6 @@ useEffect(() => {
 
   return (
     <View style={styles.container}>
-      {/* Шапка с логотипом по центру и профилем справа */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image 
@@ -120,60 +125,40 @@ useEffect(() => {
               style={styles.profileImage}
             />
           ) : (
-            <Ionicons name="person-circle" size={44} color="#1F4E8C" />
+            <Text style={styles.profileIcon}>👤</Text>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Заголовок текущей вкладки */}
       <Text style={styles.tabTitle}>{getTabTitle()}</Text>
       
       <View style={styles.tabContent}>
         {renderTabContent()}
       </View>
 
-      {/* Нижняя навигация */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity 
           style={[styles.navButton, activeTab === 'add' && styles.activeNavButton]}
           onPress={() => setActiveTab('add')}
         >
-          <Ionicons 
-            name="add-circle-outline" 
-            size={24} 
-            color={activeTab === 'add' ? '#1F4E8C' : '#8FA3BF'} 
-          />
-          <Text style={[styles.navText, activeTab === 'add' && styles.activeNavText]}>
-            Добавить
-          </Text>
+          <Text style={styles.navIcon}>➕</Text>
+          <Text style={[styles.navText, activeTab === 'add' && styles.activeNavText]}>Добавить</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.navButton, activeTab === 'active' && styles.activeNavButton]}
           onPress={() => setActiveTab('active')}
         >
-          <Ionicons 
-            name="play-circle-outline" 
-            size={24} 
-            color={activeTab === 'active' ? '#1F4E8C' : '#8FA3BF'} 
-          />
-          <Text style={[styles.navText, activeTab === 'active' && styles.activeNavText]}>
-            Активные
-          </Text>
+          <Text style={styles.navIcon}>▶️</Text>
+          <Text style={[styles.navText, activeTab === 'active' && styles.activeNavText]}>Активные</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.navButton, activeTab === 'completed' && styles.activeNavButton]}
           onPress={() => setActiveTab('completed')}
         >
-          <Ionicons 
-            name="checkmark-done-circle-outline" 
-            size={24} 
-            color={activeTab === 'completed' ? '#1F4E8C' : '#8FA3BF'} 
-          />
-          <Text style={[styles.navText, activeTab === 'completed' && styles.activeNavText]}>
-            Завершённые
-          </Text>
+          <Text style={styles.navIcon}>✅</Text>
+          <Text style={[styles.navText, activeTab === 'completed' && styles.activeNavText]}>Завершённые</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -181,14 +166,8 @@ useEffect(() => {
           onPress={() => setActiveTab('photos')}
         >
           <View style={styles.photoNavContent}>
-            <Ionicons 
-              name="camera-outline" 
-              size={24} 
-              color={activeTab === 'photos' ? '#1F4E8C' : '#8FA3BF'} 
-            />
-            <Text style={[styles.navText, activeTab === 'photos' && styles.activeNavText]}>
-              Фото
-            </Text>
+            <Text style={styles.navIcon}>📷</Text>
+            <Text style={[styles.navText, activeTab === 'photos' && styles.activeNavText]}>Фото</Text>
             {pendingCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{pendingCount}</Text>
@@ -248,6 +227,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#1F4E8C',
   },
+  profileIcon: {
+    fontSize: 44,
+  },
   tabTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -277,6 +259,9 @@ const styles = StyleSheet.create({
   },
   activeNavButton: {
     backgroundColor: '#F4F7FB',
+  },
+  navIcon: {
+    fontSize: 24,
   },
   navText: {
     fontSize: 12,
