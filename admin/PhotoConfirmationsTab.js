@@ -9,7 +9,7 @@ import {
   Image,
   ActivityIndicator
 } from 'react-native';
-import { ref, onValue, off, update } from 'firebase/database';
+import { ref, onValue, off, update, get } from 'firebase/database';
 import { db } from '../config';
 import { showAlert, showConfirm } from '../utils/notifications';
 
@@ -17,25 +17,34 @@ const PhotoConfirmationsTab = () => {
   const [confirmations, setConfirmations] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadConfirmations = async () => {
     const confirmationsRef = ref(db, 'photoConfirmations');
+    const snapshot = await get(confirmationsRef);
     
-    const unsubscribe = onValue(confirmationsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const confirmationsList = Object.entries(data)
-          .map(([id, confirmation]) => ({
-            id,
-            ...confirmation
-          }))
-          .filter(c => c.status === 'pending')
-          .sort((a, b) => b.timestamp - a.timestamp);
-        
-        setConfirmations(confirmationsList);
-      } else {
-        setConfirmations([]);
-      }
-      setLoading(false);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const confirmationsList = Object.entries(data)
+        .map(([id, confirmation]) => ({
+          id,
+          ...confirmation
+        }))
+        .filter(c => c.status === 'pending')
+        .sort((a, b) => b.timestamp - a.timestamp);
+      
+      setConfirmations(confirmationsList);
+    } else {
+      setConfirmations([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadConfirmations();
+    
+    // Подписываемся на изменения в реальном времени
+    const confirmationsRef = ref(db, 'photoConfirmations');
+    const unsubscribe = onValue(confirmationsRef, () => {
+      loadConfirmations();
     });
 
     return () => off(confirmationsRef);
@@ -47,25 +56,38 @@ const PhotoConfirmationsTab = () => {
       `Подтвердить ${confirmation.type === 'arrival' ? 'прибытие' : 'завершение'} задачи?`,
       async () => {
         try {
+          // Обновляем статус подтверждения
           await update(ref(db, `photoConfirmations/${confirmation.id}`), {
             status: 'approved',
             approvedAt: Date.now(),
             approvedBy: 'admin'
           });
 
-          const taskUpdates = {};
-          if (confirmation.type === 'arrival') {
-            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/isOnSite`] = true;
-            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/lastChecked`] = new Date().toISOString();
-            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/confirmedByPhoto`] = true;
-          } else {
-            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completed`] = true;
-            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completedAt`] = new Date().toISOString();
-            taskUpdates[`tasks/${confirmation.workerId}/${confirmation.taskId}/completedByPhoto`] = true;
+          // Обновляем задачу
+          const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
+          const taskSnapshot = await get(taskRef);
+          
+          if (taskSnapshot.exists()) {
+            const updates = {};
+            
+            if (confirmation.type === 'arrival') {
+              updates.isOnSite = true;
+              updates.lastChecked = new Date().toISOString();
+              updates.confirmedByPhoto = true;
+            } else {
+              updates.completed = true;
+              updates.completedAt = new Date().toISOString();
+              updates.completedByPhoto = true;
+            }
+            
+            await update(taskRef, updates);
           }
-
-          await update(ref(db), taskUpdates);
+          
           showAlert('Успех', 'Подтверждение принято');
+          
+          // Обновляем список
+          await loadConfirmations();
+          
         } catch (error) {
           console.error('Ошибка подтверждения:', error);
           showAlert('Ошибка', 'Не удалось подтвердить');
@@ -74,17 +96,22 @@ const PhotoConfirmationsTab = () => {
     );
   };
 
-  const handleReject = (confirmationId) => {
+  const handleReject = (confirmation) => {
     showConfirm(
       'Отклонение',
       'Вы уверены, что хотите отклонить этот запрос?',
       async () => {
         try {
-          await update(ref(db, `photoConfirmations/${confirmationId}`), {
+          await update(ref(db, `photoConfirmations/${confirmation.id}`), {
             status: 'rejected',
             rejectedAt: Date.now()
           });
+          
           showAlert('Успех', 'Запрос отклонен');
+          
+          // Обновляем список
+          await loadConfirmations();
+          
         } catch (error) {
           console.error('Ошибка отклонения:', error);
           showAlert('Ошибка', 'Не удалось отклонить запрос');
@@ -153,7 +180,7 @@ const PhotoConfirmationsTab = () => {
 
           <TouchableOpacity 
             style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => handleReject(item.id)}
+            onPress={() => handleReject(item)}
           >
             <Text style={styles.actionButtonText}>✗ Отклонить</Text>
           </TouchableOpacity>

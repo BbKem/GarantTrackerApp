@@ -1,4 +1,4 @@
-// admin/AdminPanel.js - редизайн в стиле приложения
+// admin/AdminPanel.js - исправленная версия
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,8 +16,8 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
   const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
 
-  // Подписываемся на фото-подтверждения
   useEffect(() => {
     const confirmationsRef = ref(db, 'photoConfirmations');
     
@@ -31,8 +31,10 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
           }))
           .filter(conf => conf.status === 'pending');
         setPendingConfirmations(pending);
+        setPendingCount(pending.length);
       } else {
         setPendingConfirmations([]);
+        setPendingCount(0);
       }
     });
 
@@ -87,8 +89,6 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
         return null;
     }
   };
-
-  const pendingCount = pendingConfirmations.length;
 
   // Получаем название текущей вкладки
   const getTabTitle = () => {

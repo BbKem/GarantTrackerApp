@@ -7,39 +7,38 @@ export const TimePickerModal = ({ visible, onClose, onConfirm, currentTime }) =>
 
   if (!visible) return null;
 
-  const handleConfirm = () => {
-    onConfirm(selectedTime);
-    onClose();
-  };
-
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+    <Modal
+      transparent={true}
+      visible={visible}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Выберите время</Text>
-          
-          <input
-            type="time"
-            value={selectedTime}
-            onChange={(e) => setSelectedTime(e.target.value)}
-            style={{
-              width: '100%',
-              padding: 12,
-              fontSize: 18,
-              border: '1px solid #E2E8F0',
-              borderRadius: 8,
-              marginVertical: 20,
-              fontFamily: 'inherit'
-            }}
-          />
-          
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Отмена</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-              <Text style={styles.confirmButtonText}>Подтвердить</Text>
-            </TouchableOpacity>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Выберите время</Text>
+            
+            <View style={styles.timePickerWrapper}>
+              <input
+                type="time"
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+                style={styles.timeInput}
+              />
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmButton} onPress={() => {
+                onConfirm(selectedTime);
+                onClose();
+              }}>
+                <Text style={styles.confirmButtonText}>Подтвердить</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -50,21 +49,46 @@ export const TimePickerModal = ({ visible, onClose, onConfirm, currentTime }) =>
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
+  modalContainer: {
+    width: '85%',
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalContent: {
     padding: 20,
-    width: '80%',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 16,
+    color: '#1A1A1A',
+    marginBottom: 20,
+  },
+  timePickerWrapper: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  timeInput: {
+    width: '100%',
+    padding: 14,
+    fontSize: 18,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    backgroundColor: '#F8FAFE',
+    fontFamily: 'monospace',
+    fontWeight: '500',
     color: '#1A1A1A',
   },
   modalButtons: {
@@ -81,6 +105,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: '#8FA3BF',
+    fontSize: 15,
     fontWeight: '500',
   },
   confirmButton: {
@@ -92,6 +117,7 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '500',
   },
 });
