@@ -73,6 +73,7 @@ const PhotoConfirmationsTab = () => {
             });
           }
           
+          setConfirmations(prev => prev.filter(c => c.id !== confirmation.id));
           showAlert('Успех', 'Подтверждение принято');
           
         } catch (error) {
@@ -115,6 +116,7 @@ const PhotoConfirmationsTab = () => {
             });
           }
           
+           setConfirmations(prev => prev.filter(c => c.id !== confirmation.id));
           showAlert('Успех', 'Запрос отклонен');
           
         } catch (error) {
