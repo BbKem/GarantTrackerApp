@@ -42,91 +42,92 @@ const PhotoConfirmationsTab = () => {
   }, []);
 
   const handleApprove = (confirmation) => {
-  showConfirm(
-    'Подтверждение',
-    `Подтвердить ${confirmation.type === 'arrival' ? 'прибытие' : 'завершение'} задачи?`,
-    async () => {
-      try {
-        // Обновляем статус подтверждения
-        await update(ref(db, `photoConfirmations/${confirmation.id}`), {
-          status: 'approved',
-          approvedAt: Date.now(),
-          approvedBy: 'admin'
-        });
+    showConfirm(
+      'Подтверждение',
+      `Подтвердить ${confirmation.type === 'arrival' ? 'прибытие' : 'завершение'} задачи?`,
+      async () => {
+        try {
+          // Обновляем статус подтверждения
+          await update(ref(db, `photoConfirmations/${confirmation.id}`), {
+            status: 'approved',
+            approvedAt: Date.now(),
+            approvedBy: 'admin'
+          });
 
-        // Обновляем задачу
-        const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
-        
-        if (confirmation.type === 'arrival') {
-          await update(taskRef, {
-            isOnSite: true,
-            lastChecked: new Date().toISOString(),
-            confirmedByPhoto: true,
-            completed: false // Убеждаемся, что задача не завершена
-          });
-        } else {
-          await update(taskRef, {
-            completed: true,
-            completedAt: new Date().toISOString(),
-            completedByPhoto: true,
-            isOnSite: false // На месте уже не нужен
-          });
+          // Обновляем задачу
+          const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
+          
+          if (confirmation.type === 'arrival') {
+            await update(taskRef, {
+              isOnSite: true,
+              lastChecked: new Date().toISOString(),
+              confirmedByPhoto: true,
+              completed: false
+            });
+          } else {
+            await update(taskRef, {
+              completed: true,
+              completedAt: new Date().toISOString(),
+              completedByPhoto: true,
+              isOnSite: false
+            });
+          }
+          
+          showAlert('Успех', 'Подтверждение принято');
+          
+        } catch (error) {
+          console.error('Ошибка подтверждения:', error);
+          showAlert('Ошибка', 'Не удалось подтвердить');
         }
-        
-        showAlert('Успех', 'Подтверждение принято');
-        
-      } catch (error) {
-        console.error('Ошибка подтверждения:', error);
-        showAlert('Ошибка', 'Не удалось подтвердить');
       }
-    }
-  );
-};
+    );
+  };
 
   const handleReject = (confirmation) => {
-  showConfirm(
-    'Отклонение',
-    'Вы уверены, что хотите отклонить этот запрос?',
-    async () => {
-      try {
-        // Обновляем статус подтверждения
-        await update(ref(db, `photoConfirmations/${confirmation.id}`), {
-          status: 'rejected',
-          rejectedAt: Date.now()
-        });
-        
-        // Обновляем задачу в зависимости от типа
-        const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
-        
-        if (confirmation.type === 'arrival') {
-          // Отклонение прибытия: возвращаем в статус "Не подтверждено"
-          await update(taskRef, {
-            isOnSite: false,
-            confirmedByPhoto: null,
-            lastChecked: null,
-            completed: false, // Добавьте эту строку для безопасности
-            completedAt: null // Добавьте эту строку для безопасности
+    showConfirm(
+      'Отклонение',
+      'Вы уверены, что хотите отклонить этот запрос?',
+      async () => {
+        try {
+          // Обновляем статус подтверждения на rejected
+          await update(ref(db, `photoConfirmations/${confirmation.id}`), {
+            status: 'rejected',
+            rejectedAt: Date.now(),
+            rejectedBy: 'admin'
           });
-        } else {
-          // Отклонение завершения: возвращаем задачу в статус "На месте"
-          await update(taskRef, {
-            completed: false,
-            completedAt: null,
-            completedByPhoto: null,
-            isOnSite: true,
-            lastChecked: new Date().toISOString() // Добавьте эту строку
-          });
+          
+          // Обновляем задачу в зависимости от типа
+          const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
+          
+          if (confirmation.type === 'arrival') {
+            // Отклонение прибытия: возвращаем в статус "Не подтверждено"
+            await update(taskRef, {
+              isOnSite: false,
+              confirmedByPhoto: null,
+              lastChecked: null,
+              completed: false,
+              completedAt: null
+            });
+            showAlert('Успех', 'Запрос на прибытие отклонен. Статус задачи: Не подтверждено');
+          } else {
+            // Отклонение завершения: возвращаем задачу в статус "На месте" (isOnSite = true)
+            await update(taskRef, {
+              completed: false,
+              completedAt: null,
+              completedByPhoto: null,
+              isOnSite: true,
+              lastChecked: new Date().toISOString()
+            });
+            showAlert('Успех', 'Запрос на завершение отклонен. Задача возвращена в активные со статусом "На месте"');
+          }
+          
+        } catch (error) {
+          console.error('Ошибка отклонения:', error);
+          showAlert('Ошибка', 'Не удалось отклонить запрос');
         }
-        
-        showAlert('Успех', 'Запрос отклонен');
-        
-      } catch (error) {
-        console.error('Ошибка отклонения:', error);
-        showAlert('Ошибка', 'Не удалось отклонить запрос');
       }
-    }
-  );
-};
+    );
+  };
 
   const getTypeConfig = (type) => {
     if (type === 'arrival') {
