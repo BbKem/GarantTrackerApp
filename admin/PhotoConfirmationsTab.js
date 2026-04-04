@@ -1,4 +1,4 @@
-// admin/PhotoConfirmationsTab.js - полная исправленная версия
+// admin/PhotoConfirmationsTab.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -93,13 +93,23 @@ const PhotoConfirmationsTab = () => {
             rejectedAt: Date.now()
           });
           
-          // Если это прибытие - снимаем статус "на месте"
+          // Обновляем задачу в зависимости от типа
+          const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
+          
           if (confirmation.type === 'arrival') {
-            const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
+            // Отклонение прибытия: возвращаем в статус "Не подтверждено"
             await update(taskRef, {
               isOnSite: false,
               confirmedByPhoto: null,
               lastChecked: null
+            });
+          } else {
+            // Отклонение завершения: возвращаем задачу в статус "На месте"
+            await update(taskRef, {
+              completed: false,
+              completedAt: null,
+              completedByPhoto: null,
+              isOnSite: true
             });
           }
           
