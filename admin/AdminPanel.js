@@ -1,9 +1,10 @@
-// admin/AdminPanel.js
+// admin/AdminPanel.js — UI сохранён, логика исправлена
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ref, get, onValue, off } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 import { db } from '../config';
+
 import ProfileModal from '../common/ProfileModal';
 import AddTaskTab from './AddTaskTab';
 import ActiveTasksTab from './ActiveTasksTab';
@@ -11,25 +12,55 @@ import CompletedTasksTab from './CompletedTasksTab';
 import PhotoConfirmationsTab from './PhotoConfirmationsTab';
 
 const AdminPanel = ({ user, onSignOut }) => {
+  const [tasks, setTasks] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState('');
   const [workers, setWorkers] = useState([]);
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
+
   const [pendingConfirmations, setPendingConfirmations] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
-  const [tasks, setTasks] = useState([]);
 
-  // Подписка на фото-подтверждения в реальном времени
+  // ✅ TASKS (realtime)
+  useEffect(() => {
+    const tasksRef = ref(db, 'tasks');
+
+    const unsubscribe = onValue(tasksRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const allTasks = [];
+
+        Object.entries(data).forEach(([workerId, workerTasks]) => {
+          Object.entries(workerTasks).forEach(([taskId, task]) => {
+            allTasks.push({
+              id: taskId,
+              workerId,
+              ...task,
+            });
+          });
+        });
+
+        setTasks(allTasks);
+      } else {
+        setTasks([]);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // ✅ CONFIRMATIONS (realtime + правильный unsubscribe)
   useEffect(() => {
     const confirmationsRef = ref(db, 'photoConfirmations');
-    
+
     const unsubscribe = onValue(confirmationsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
+
         const pendingList = Object.entries(data)
           .map(([id, conf]) => ({ id, ...conf }))
           .filter(conf => conf.status === 'pending');
-        
+
         setPendingConfirmations(pendingList);
         setPendingCount(pendingList.length);
       } else {
@@ -38,51 +69,29 @@ const AdminPanel = ({ user, onSignOut }) => {
       }
     });
 
-    return () => off(confirmationsRef);
+    return unsubscribe;
   }, []);
 
-  // Подписка на задачи всех работников в реальном времени
-  useEffect(() => {
-    const tasksRef = ref(db, 'tasks');
-    
-    const unsubscribe = onValue(tasksRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const allTasks = [];
-        const tasksData = snapshot.val();
-        
-        // Преобразуем структуру tasks/workerId/taskId в плоский массив
-        Object.entries(tasksData).forEach(([workerId, workerTasks]) => {
-          Object.entries(workerTasks).forEach(([taskId, taskData]) => {
-            allTasks.push({
-              id: taskId,
-              assignedTo: workerId,
-              ...taskData
-            });
-          });
-        });
-        
-        setTasks(allTasks);
-      } else {
-        setTasks([]);
-      }
-    });
-
-    return () => off(tasksRef);
-  }, []);
-
-  // Загрузка списка работников
+  // ✅ WORKERS (realtime)
   useEffect(() => {
     const workersRef = ref(db, 'users');
-    get(workersRef).then((snapshot) => {
+
+    const unsubscribe = onValue(workersRef, (snapshot) => {
       if (snapshot.exists()) {
         const workersData = Object.entries(snapshot.val())
           .filter(([_, data]) => data.userType === 'worker')
           .map(([username]) => ({ username }));
+
         setWorkers(workersData);
-        if (workersData.length) setSelectedWorker(workersData[0].username);
+
+        if (workersData.length && !selectedWorker) {
+          setSelectedWorker(workersData[0].username);
+        }
       }
     });
-  }, [user]);
+
+    return unsubscribe;
+  }, []);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -120,7 +129,6 @@ const AdminPanel = ({ user, onSignOut }) => {
     }
   };
 
-  // Получаем название текущей вкладки
   const getTabTitle = () => {
     switch (activeTab) {
       case 'add': return 'Добавление задачи';
@@ -133,7 +141,7 @@ const AdminPanel = ({ user, onSignOut }) => {
 
   return (
     <View style={styles.container}>
-      {/* Шапка с логотипом по центру и профилем справа */}
+      {/* ШАПКА — БЕЗ ИЗМЕНЕНИЙ */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image 
@@ -157,14 +165,14 @@ const AdminPanel = ({ user, onSignOut }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Заголовок текущей вкладки */}
+      {/* ЗАГОЛОВОК */}
       <Text style={styles.tabTitle}>{getTabTitle()}</Text>
       
       <View style={styles.tabContent}>
         {renderTabContent()}
       </View>
 
-      {/* Нижняя навигация */}
+      {/* НИЖНЯЯ НАВИГАЦИЯ — БЕЗ ИЗМЕНЕНИЙ */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity 
           style={[styles.navButton, activeTab === 'add' && styles.activeNavButton]}
@@ -241,10 +249,8 @@ const AdminPanel = ({ user, onSignOut }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F4F7FB',
-  },
+  // 🔥 ВСЕ ТВОИ СТИЛИ ОСТАВЛЕНЫ БЕЗ ИЗМЕНЕНИЙ
+  container: { flex: 1, backgroundColor: '#F4F7FB' },
   header: {
     height: 150,
     flexDirection: 'row',
@@ -258,13 +264,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
     position: 'relative',
   },
-  logoContainer: {
-    alignItems: 'center',
-  },
-  logoImage: {
-    width: 120,
-    height: 120,
-  },
+  logoContainer: { alignItems: 'center' },
+  logoImage: { width: 120, height: 120 },
   profileButton: {
     position: 'absolute',
     right: 16,
@@ -288,10 +289,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F7FB',
     color: '#1F4E8C',
   },
-  tabContent: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
+  tabContent: { flex: 1, paddingHorizontal: 16 },
   bottomNavigation: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -301,29 +299,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  navButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  activeNavButton: {
-    backgroundColor: '#F4F7FB',
-  },
-  navText: {
-    fontSize: 12,
-    color: '#8FA3BF',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  activeNavText: {
-    color: '#1F4E8C',
-    fontWeight: '600',
-  },
-  photoNavContent: {
-    alignItems: 'center',
-    position: 'relative',
-  },
+  navButton: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8 },
+  activeNavButton: { backgroundColor: '#F4F7FB' },
+  navText: { fontSize: 12, color: '#8FA3BF', marginTop: 4, fontWeight: '500' },
+  activeNavText: { color: '#1F4E8C', fontWeight: '600' },
+  photoNavContent: { alignItems: 'center', position: 'relative' },
   badge: {
     position: 'absolute',
     top: -8,
@@ -338,11 +318,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: 'bold',
-  },
+  badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: 'bold' },
 });
 
 export default AdminPanel;

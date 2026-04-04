@@ -1,133 +1,81 @@
 // admin/ActiveTasksTab.js
-import React, { useEffect, useState, useMemo } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
 
 const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations }) => {
-  // Используем useMemo для оптимизации и автоматического обновления
-  const activeTasks = useMemo(() => {
-    return tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
-  }, [tasks, selectedWorker]);
 
-  // Функция для получения статуса задачи
+  const activeTasks = tasks.filter(
+    t => t.assignedTo === selectedWorker && !t.completed
+  );
+
   const getTaskStatus = (task) => {
-    // Проверяем наличие ожидающих подтверждений
-    const hasPendingArrival = pendingConfirmations?.some(
-      p => p.taskId === task.id && p.type === 'arrival' && p.status === 'pending'
-    );
-    const hasPendingCompletion = pendingConfirmations?.some(
-      p => p.taskId === task.id && p.type === 'completion' && p.status === 'pending'
+    const pendingArrival = pendingConfirmations?.some(
+      p => p.taskId === task.id && p.type === 'arrival'
     );
 
-    if (hasPendingArrival || hasPendingCompletion) return 'pending';
+    const pendingCompletion = pendingConfirmations?.some(
+      p => p.taskId === task.id && p.type === 'completion'
+    );
+
+    if (task.completed) return 'completed';
+    if (pendingCompletion) return 'pendingCompletion';
+    if (pendingArrival) return 'pendingArrival';
     if (task.isOnSite) return 'onSite';
+
     return 'offSite';
   };
 
   const getStatusConfig = (status) => {
     switch (status) {
-      case 'pending':
-        return { text: 'На проверке', color: '#FF9800', icon: '⏳' };
+      case 'pendingArrival':
+        return { text: 'Проверка прибытия', color: '#FF9800' };
+      case 'pendingCompletion':
+        return { text: 'Проверка завершения', color: '#FF9800' };
       case 'onSite':
-        return { text: 'На месте', color: '#4CAF50', icon: '📍' };
+        return { text: 'На месте', color: '#4CAF50' };
       default:
-        return { text: 'Не подтверждено', color: '#FF6B6B', icon: '⚠️' };
+        return { text: 'Не подтверждено', color: '#FF6B6B' };
     }
   };
 
   const renderTaskItem = ({ item }) => {
     const status = getTaskStatus(item);
-    const statusConfig = getStatusConfig(status);
-    const isPending = status === 'pending';
+    const config = getStatusConfig(status);
 
     return (
-      <TaskCard task={item} isPending={isPending}>
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusIcon}>{statusConfig.icon}</Text>
-          <Text style={[styles.statusText, { color: statusConfig.color }]}>
-            {statusConfig.text}
-          </Text>
-        </View>
-
-        {item.lastChecked && !isPending && (
-          <View style={styles.lastCheckedContainer}>
-            <Text style={styles.lastCheckedIcon}>🔄</Text>
-            <Text style={styles.lastChecked}>
-              Последняя проверка: {new Date(item.lastChecked).toLocaleString()}
-            </Text>
-          </View>
-        )}
+      <TaskCard task={item}>
+        <Text style={{ color: config.color }}>{config.text}</Text>
       </TaskCard>
     );
   };
 
   return (
-    <View style={styles.tabContainer}>
-      <WorkerSelector 
+    <View style={styles.container}>
+      <WorkerSelector
         selectedWorker={selectedWorker}
         workers={workers}
         setSelectedWorker={setSelectedWorker}
       />
 
-      <View style={styles.headerSection}>
-        <Text style={styles.taskCountText}>
-          📋 Всего активных задач: {activeTasks.length}
-        </Text>
-      </View>
+      <Text style={styles.count}>
+        Всего: {activeTasks.length}
+      </Text>
 
-      <TaskList 
+      <TaskList
         tasks={activeTasks}
         renderTaskItem={renderTaskItem}
-        emptyMessage="Нет активных задач"
+        emptyMessage="Нет задач"
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tabContainer: {
-    flex: 1,
-  },
-  headerSection: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingHorizontal: 0,
-    paddingBottom: 12,
-    backgroundColor: '#F4F7FB',
-  },
-  taskCountText: {
-    fontSize: 14,
-    color: '#8FA3BF',
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    gap: 6,
-  },
-  statusIcon: {
-    fontSize: 14,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  lastCheckedContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
-  },
-  lastCheckedIcon: {
-    fontSize: 11,
-  },
-  lastChecked: {
-    fontSize: 11,
-    color: '#8FA3BF',
-  },
+  container: { flex: 1 },
+  count: { marginBottom: 10, color: '#8FA3BF' },
 });
 
 export default ActiveTasksTab;

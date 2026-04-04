@@ -18,28 +18,30 @@ const PhotoConfirmationsTab = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const confirmationsRef = ref(db, 'photoConfirmations');
-    
-    const unsubscribe = onValue(confirmationsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const confirmationsList = Object.entries(data)
-          .map(([id, confirmation]) => ({
-            id,
-            ...confirmation
-          }))
-          .filter(c => c.status === 'pending')
-          .sort((a, b) => b.timestamp - a.timestamp);
-        
-        setConfirmations(confirmationsList);
-      } else {
-        setConfirmations([]);
-      }
-      setLoading(false);
-    });
+  const confirmationsRef = ref(db, 'photoConfirmations');
 
-    return () => off(confirmationsRef);
-  }, []);
+  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+
+      const confirmationsList = Object.entries(data)
+        .map(([id, confirmation]) => ({
+          id,
+          ...confirmation
+        }))
+        .filter(c => c.status === 'pending')
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      setConfirmations(confirmationsList);
+    } else {
+      setConfirmations([]);
+    }
+
+    setLoading(false);
+  });
+
+  return unsubscribe;
+}, []);
 
   const handleApprove = (confirmation) => {
     showConfirm(
@@ -61,15 +63,13 @@ const PhotoConfirmationsTab = () => {
             await update(taskRef, {
               isOnSite: true,
               lastChecked: new Date().toISOString(),
-              confirmedByPhoto: true,
-              completed: false
+              confirmedByPhoto: true
             });
           } else {
             await update(taskRef, {
               completed: true,
               completedAt: new Date().toISOString(),
-              completedByPhoto: true,
-              isOnSite: false
+              completedByPhoto: true
             });
           }
           
@@ -89,11 +89,10 @@ const PhotoConfirmationsTab = () => {
       'Вы уверены, что хотите отклонить этот запрос?',
       async () => {
         try {
-          // Обновляем статус подтверждения на rejected
+          // Обновляем статус подтверждения
           await update(ref(db, `photoConfirmations/${confirmation.id}`), {
             status: 'rejected',
-            rejectedAt: Date.now(),
-            rejectedBy: 'admin'
+            rejectedAt: Date.now()
           });
           
           // Обновляем задачу в зависимости от типа
@@ -104,22 +103,19 @@ const PhotoConfirmationsTab = () => {
             await update(taskRef, {
               isOnSite: false,
               confirmedByPhoto: null,
-              lastChecked: null,
-              completed: false,
-              completedAt: null
+              lastChecked: null
             });
-            showAlert('Успех', 'Запрос на прибытие отклонен. Статус задачи: Не подтверждено');
           } else {
-            // Отклонение завершения: возвращаем задачу в статус "На месте" (isOnSite = true)
+            // Отклонение завершения: возвращаем задачу в статус "На месте"
             await update(taskRef, {
               completed: false,
               completedAt: null,
               completedByPhoto: null,
-              isOnSite: true,
-              lastChecked: new Date().toISOString()
+              isOnSite: true
             });
-            showAlert('Успех', 'Запрос на завершение отклонен. Задача возвращена в активные со статусом "На месте"');
           }
+          
+          showAlert('Успех', 'Запрос отклонен');
           
         } catch (error) {
           console.error('Ошибка отклонения:', error);
