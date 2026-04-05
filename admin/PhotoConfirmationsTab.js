@@ -9,13 +9,15 @@ import {
   Image,
   ActivityIndicator
 } from 'react-native';
-import { ref, onValue, off, update, get } from 'firebase/database';
+import { ref, onValue, off, update } from 'firebase/database';
 import { db } from '../config';
 import { showAlert, showConfirm } from '../utils/notifications';
+import eventEmitter from '../utils/eventEmitter';
 
 const PhotoConfirmationsTab = () => {
   const [confirmations, setConfirmations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const confirmationsRef = ref(db, 'photoConfirmations');
@@ -36,9 +38,18 @@ const PhotoConfirmationsTab = () => {
         setConfirmations([]);
       }
       setLoading(false);
+      setRefreshKey(prev => prev + 1);
     });
 
-    return () => off(confirmationsRef);
+    // Слушаем событие принудительного обновления
+    const unsubscribeEvent = eventEmitter.on('forceUpdate', () => {
+      setRefreshKey(prev => prev + 1);
+    });
+
+    return () => {
+      off(confirmationsRef);
+      unsubscribeEvent();
+    };
   }, []);
 
   const handleApprove = (confirmation) => {
@@ -71,6 +82,9 @@ const PhotoConfirmationsTab = () => {
             });
           }
           
+          // Принудительно обновляем все компоненты
+          eventEmitter.emit('forceUpdate');
+          
           showAlert('Успех', 'Подтверждение принято');
           
         } catch (error) {
@@ -97,14 +111,12 @@ const PhotoConfirmationsTab = () => {
           const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
           
           if (confirmation.type === 'arrival') {
-            // Отклонение прибытия: возвращаем в статус "Не подтверждено"
             await update(taskRef, {
               isOnSite: false,
               confirmedByPhoto: null,
               lastChecked: null
             });
           } else {
-            // Отклонение завершения: возвращаем задачу в статус "На месте"
             await update(taskRef, {
               completed: false,
               completedAt: null,
@@ -112,6 +124,9 @@ const PhotoConfirmationsTab = () => {
               isOnSite: true
             });
           }
+          
+          // Принудительно обновляем все компоненты
+          eventEmitter.emit('forceUpdate');
           
           showAlert('Успех', 'Запрос отклонен');
           
@@ -213,7 +228,7 @@ const PhotoConfirmationsTab = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} key={refreshKey}>
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>
           📋 Всего на проверке: {confirmations.length}

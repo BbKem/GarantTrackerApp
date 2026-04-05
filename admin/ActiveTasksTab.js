@@ -1,15 +1,29 @@
-// admin/ActiveTasksTab.js - ПОЛНОСТЬЮ как у работника
-import React from 'react';
+// admin/ActiveTasksTab.js
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
+import eventEmitter from '../utils/eventEmitter';
 
 const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations }) => {
-  // Фильтруем активные задачи для выбранного работника
-  const activeTasks = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [localTasks, setLocalTasks] = useState([]);
 
-  // Функция для получения статуса задачи - ТОЧНО КАК У РАБОТНИКА
+  // Слушаем событие принудительного обновления
+  useEffect(() => {
+    const unsubscribe = eventEmitter.on('forceUpdate', () => {
+      setRefreshKey(prev => prev + 1);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Обновляем локальные задачи при изменении пропсов или при forceUpdate
+  useEffect(() => {
+    const filtered = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
+    setLocalTasks(filtered);
+  }, [tasks, selectedWorker, refreshKey, pendingConfirmations]);
+
   const getTaskStatus = (task) => {
     const hasPendingArrival = pendingConfirmations?.some(
       p => p.taskId === task.id && p.type === 'arrival' && p.status === 'pending'
@@ -70,12 +84,12 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
 
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>
-          📋 Всего активных задач: {activeTasks.length}
+          📋 Всего активных задач: {localTasks.length}
         </Text>
       </View>
 
       <TaskList 
-        tasks={activeTasks}
+        tasks={localTasks}
         renderTaskItem={renderTaskItem}
         emptyMessage="Нет активных задач"
       />

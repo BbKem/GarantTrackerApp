@@ -1,4 +1,4 @@
-// admin/AdminPanel.js - по аналогии с WorkerPanel
+// admin/AdminPanel.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import AddTaskTab from './AddTaskTab';
 import ActiveTasksTab from './ActiveTasksTab';
 import CompletedTasksTab from './CompletedTasksTab';
 import PhotoConfirmationsTab from './PhotoConfirmationsTab';
+import eventEmitter from '../utils/eventEmitter';
 
 const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [selectedWorker, setSelectedWorker] = useState('');
@@ -17,8 +18,17 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [profileVisible, setProfileVisible] = useState(false);
   const [pendingConfirmations, setPendingConfirmations] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [forceKey, setForceKey] = useState(0);
 
-  // ТОЧНО ТАКОЙ ЖЕ useEffect как у работника
+  // Слушаем событие принудительного обновления
+  useEffect(() => {
+    const unsubscribe = eventEmitter.on('forceUpdate', () => {
+      setForceKey(prev => prev + 1);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Следим за изменениями в photoConfirmations
   useEffect(() => {
     const confirmationsRef = ref(db, 'photoConfirmations');
     
@@ -40,6 +50,7 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
     return () => off(confirmationsRef);
   }, []);
 
+  // Загрузка списка работников
   useEffect(() => {
     const workersRef = ref(db, 'users');
     get(workersRef).then((snapshot) => {
@@ -48,16 +59,22 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
           .filter(([_, data]) => data.userType === 'worker')
           .map(([username]) => ({ username }));
         setWorkers(workersData);
-        if (workersData.length) setSelectedWorker(workersData[0].username);
+        if (workersData.length && !selectedWorker) {
+          setSelectedWorker(workersData[0].username);
+        }
       }
     });
   }, [user]);
 
   const renderTabContent = () => {
+    // Создаем уникальный ключ для принудительного обновления
+    const key = `${activeTab}-${forceKey}-${selectedWorker}`;
+    
     switch (activeTab) {
       case 'add':
         return (
           <AddTaskTab
+            key={key}
             selectedWorker={selectedWorker}
             workers={workers}
             setSelectedWorker={setSelectedWorker}
@@ -66,6 +83,7 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
       case 'active':
         return (
           <ActiveTasksTab
+            key={key}
             tasks={tasks}
             selectedWorker={selectedWorker}
             workers={workers}
@@ -76,6 +94,7 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
       case 'completed':
         return (
           <CompletedTasksTab
+            key={key}
             tasks={tasks}
             selectedWorker={selectedWorker}
             workers={workers}
@@ -83,7 +102,11 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
           />
         );
       case 'photos':
-        return <PhotoConfirmationsTab />;
+        return (
+          <PhotoConfirmationsTab
+            key={`photos-${forceKey}`}
+          />
+        );
       default:
         return null;
     }
