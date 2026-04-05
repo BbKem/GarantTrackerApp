@@ -1,22 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
 
 const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations }) => {
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Принудительная перерисовка при изменении pendingConfirmations
-  useEffect(() => {
-    setRefreshKey(prev => prev + 1);
-  }, [pendingConfirmations]);
-
-  // Фильтруем активные задачи для выбранного работника
-  const activeTasks = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
-
-  // Функция для получения статуса задачи
-  const getTaskStatus = (task) => {
+  // Функция для получения статуса задачи - обновляем чтобы всегда проверяла свежие данные
+  const getTaskStatus = useCallback((task) => {
+    // Проверяем ожидающие подтверждения
     const hasPendingArrival = pendingConfirmations?.some(
       p => p.taskId === task.id && p.type === 'arrival' && p.status === 'pending'
     );
@@ -27,7 +18,7 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
     if (hasPendingArrival || hasPendingCompletion) return 'pending';
     if (task.isOnSite) return 'onSite';
     return 'offSite';
-  };
+  }, [pendingConfirmations]);
 
   const getStatusConfig = (status) => {
     switch (status) {
@@ -40,7 +31,10 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
     }
   };
 
-  const renderTaskItem = ({ item }) => {
+  // Фильтруем активные задачи для выбранного работника
+  const activeTasks = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
+
+  const renderTaskItem = useCallback(({ item }) => {
     const status = getTaskStatus(item);
     const statusConfig = getStatusConfig(status);
     const isPending = status === 'pending';
@@ -64,10 +58,10 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
         )}
       </TaskCard>
     );
-  };
+  }, [getTaskStatus]);
 
   return (
-    <View key={refreshKey} style={styles.tabContainer}>
+    <View style={styles.tabContainer}>
       <WorkerSelector 
         selectedWorker={selectedWorker}
         workers={workers}

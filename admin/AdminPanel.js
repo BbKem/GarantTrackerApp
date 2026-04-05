@@ -1,5 +1,5 @@
 // admin/AdminPanel.js - исправленная версия
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ref, get, onValue, off } from 'firebase/database';
@@ -15,29 +15,41 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [workers, setWorkers] = useState([]);
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
-const [pendingConfirmations, setPendingConfirmations] = useState([]);
-const [pendingCount, setPendingCount] = useState(0);
+  const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  // Добавляем счетчик для принудительного обновления
+  const [updateCounter, setUpdateCounter] = useState(0);
 
-useEffect(() => {
-  const confirmationsRef = ref(db, 'photoConfirmations');
-  
-  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const pendingList = Object.entries(data)
-        .map(([id, conf]) => ({ id, ...conf }))
-        .filter(conf => conf.status === 'pending');
-      
-      setPendingConfirmations(pendingList);
-      setPendingCount(pendingList.length);
-    } else {
-      setPendingConfirmations([]);
-      setPendingCount(0);
-    }
-  });
+  // Следим за изменениями в photoConfirmations
+  useEffect(() => {
+    const confirmationsRef = ref(db, 'photoConfirmations');
+    
+    const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const pendingList = Object.entries(data)
+          .map(([id, conf]) => ({ id, ...conf }))
+          .filter(conf => conf.status === 'pending');
+        
+        setPendingConfirmations(pendingList);
+        setPendingCount(pendingList.length);
+        // Принудительно обновляем активную вкладку при изменении подтверждений
+        setUpdateCounter(prev => prev + 1);
+      } else {
+        setPendingConfirmations([]);
+        setPendingCount(0);
+        setUpdateCounter(prev => prev + 1);
+      }
+    });
 
-  return () => off(confirmationsRef);
-}, []);
+    return () => off(confirmationsRef);
+  }, []);
+
+  // Следим за изменениями в задачах
+  useEffect(() => {
+    // При каждом изменении задач обновляем счетчик
+    setUpdateCounter(prev => prev + 1);
+  }, [tasks]);
 
   useEffect(() => {
     const workersRef = ref(db, 'users');
@@ -52,11 +64,13 @@ useEffect(() => {
     });
   }, [user]);
 
-  const renderTabContent = () => {
+  // Обновленная функция рендера с передачей ключа
+  const renderTabContent = useCallback(() => {
     switch (activeTab) {
       case 'add':
         return (
           <AddTaskTab
+            key={`add-${updateCounter}`}
             selectedWorker={selectedWorker}
             workers={workers}
             setSelectedWorker={setSelectedWorker}
@@ -65,6 +79,7 @@ useEffect(() => {
       case 'active':
         return (
           <ActiveTasksTab
+            key={`active-${updateCounter}-${selectedWorker}`}
             tasks={tasks}
             selectedWorker={selectedWorker}
             workers={workers}
@@ -75,6 +90,7 @@ useEffect(() => {
       case 'completed':
         return (
           <CompletedTasksTab
+            key={`completed-${updateCounter}-${selectedWorker}`}
             tasks={tasks}
             selectedWorker={selectedWorker}
             workers={workers}
@@ -82,11 +98,11 @@ useEffect(() => {
           />
         );
       case 'photos':
-        return <PhotoConfirmationsTab />;
+        return <PhotoConfirmationsTab key={`photos-${updateCounter}`} />;
       default:
         return null;
     }
-  };
+  }, [activeTab, selectedWorker, workers, tasks, pendingConfirmations, updateCounter]);
 
   // Получаем название текущей вкладки
   const getTabTitle = () => {

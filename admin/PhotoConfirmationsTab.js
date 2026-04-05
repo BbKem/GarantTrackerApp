@@ -1,5 +1,5 @@
-// admin/PhotoConfirmationsTab.js
-import React, { useState, useEffect } from 'react';
+// admin/PhotoConfirmationsTab.js - добавьте принудительное обновление
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { showAlert, showConfirm } from '../utils/notifications';
 const PhotoConfirmationsTab = () => {
   const [confirmations, setConfirmations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const confirmationsRef = ref(db, 'photoConfirmations');
@@ -36,12 +37,14 @@ const PhotoConfirmationsTab = () => {
         setConfirmations([]);
       }
       setLoading(false);
+      // Принудительно обновляем список
+      setRefreshKey(prev => prev + 1);
     });
 
     return () => off(confirmationsRef);
   }, []);
 
-  const handleApprove = (confirmation) => {
+  const handleApprove = useCallback(async (confirmation) => {
     showConfirm(
       'Подтверждение',
       `Подтвердить ${confirmation.type === 'arrival' ? 'прибытие' : 'завершение'} задачи?`,
@@ -72,6 +75,8 @@ const PhotoConfirmationsTab = () => {
           }
           
           showAlert('Успех', 'Подтверждение принято');
+          // Принудительно обновляем список
+          setRefreshKey(prev => prev + 1);
           
         } catch (error) {
           console.error('Ошибка подтверждения:', error);
@@ -79,9 +84,9 @@ const PhotoConfirmationsTab = () => {
         }
       }
     );
-  };
+  }, []);
 
-  const handleReject = (confirmation) => {
+  const handleReject = useCallback(async (confirmation) => {
     showConfirm(
       'Отклонение',
       'Вы уверены, что хотите отклонить этот запрос?',
@@ -114,6 +119,8 @@ const PhotoConfirmationsTab = () => {
           }
           
           showAlert('Успех', 'Запрос отклонен');
+          // Принудительно обновляем список
+          setRefreshKey(prev => prev + 1);
           
         } catch (error) {
           console.error('Ошибка отклонения:', error);
@@ -121,7 +128,7 @@ const PhotoConfirmationsTab = () => {
         }
       }
     );
-  };
+  }, []);
 
   const getTypeConfig = (type) => {
     if (type === 'arrival') {
@@ -130,7 +137,7 @@ const PhotoConfirmationsTab = () => {
     return { text: 'Завершение', icon: '✅', color: '#4CAF50', bgColor: '#E8F5E9' };
   };
 
-  const renderConfirmationItem = ({ item }) => {
+  const renderConfirmationItem = useCallback(({ item }) => {
     const typeConfig = getTypeConfig(item.type);
     
     return (
@@ -190,7 +197,7 @@ const PhotoConfirmationsTab = () => {
         </View>
       </View>
     );
-  };
+  }, [handleApprove, handleReject]);
 
   if (loading) {
     return (
@@ -213,7 +220,7 @@ const PhotoConfirmationsTab = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} key={refreshKey}>
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>
           📋 Всего на проверке: {confirmations.length}
