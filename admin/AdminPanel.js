@@ -1,6 +1,6 @@
-// admin/AdminPanel.js - ПРОСТАЯ ВЕРСИЯ
+// admin/AdminPanel.js - исправленная версия
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ref, get, onValue, off } from 'firebase/database';
 import { db } from '../config';
@@ -15,35 +15,29 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [workers, setWorkers] = useState([]);
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
-  const [pendingConfirmations, setPendingConfirmations] = useState([]);
-  const [pendingCount, setPendingCount] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
+const [pendingConfirmations, setPendingConfirmations] = useState([]);
+const [pendingCount, setPendingCount] = useState(0);
 
-  // Функция для ручного обновления
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-  };
+useEffect(() => {
+  const confirmationsRef = ref(db, 'photoConfirmations');
+  
+  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const pendingList = Object.entries(data)
+        .map(([id, conf]) => ({ id, ...conf }))
+        .filter(conf => conf.status === 'pending');
+      
+      setPendingConfirmations(pendingList);
+      setPendingCount(pendingList.length);
+    } else {
+      setPendingConfirmations([]);
+      setPendingCount(0);
+    }
+  });
 
-  useEffect(() => {
-    const confirmationsRef = ref(db, 'photoConfirmations');
-    
-    const unsubscribe = onValue(confirmationsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const pendingList = Object.entries(data)
-          .map(([id, conf]) => ({ id, ...conf }))
-          .filter(conf => conf.status === 'pending');
-        
-        setPendingConfirmations(pendingList);
-        setPendingCount(pendingList.length);
-      } else {
-        setPendingConfirmations([]);
-        setPendingCount(0);
-      }
-    });
-
-    return () => off(confirmationsRef);
-  }, []);
+  return () => off(confirmationsRef);
+}, []);
 
   useEffect(() => {
     const workersRef = ref(db, 'users');
@@ -71,13 +65,12 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
       case 'active':
         return (
           <ActiveTasksTab
-            key={`active-${refreshKey}`}
+          key={selectedWorker}
             tasks={tasks}
             selectedWorker={selectedWorker}
             workers={workers}
             setSelectedWorker={setSelectedWorker}
             pendingConfirmations={pendingConfirmations}
-            onRefresh={handleRefresh}
           />
         );
       case 'completed':
@@ -90,17 +83,13 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
           />
         );
       case 'photos':
-        return (
-          <PhotoConfirmationsTab
-            key={`photos-${refreshKey}`}
-            onRefresh={handleRefresh}
-          />
-        );
+        return <PhotoConfirmationsTab />;
       default:
         return null;
     }
   };
 
+  // Получаем название текущей вкладки
   const getTabTitle = () => {
     switch (activeTab) {
       case 'add': return 'Добавление задачи';
@@ -113,6 +102,7 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
 
   return (
     <View style={styles.container}>
+      {/* Шапка с логотипом по центру и профилем справа */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image 
@@ -136,12 +126,14 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
         </TouchableOpacity>
       </View>
 
+      {/* Заголовок текущей вкладки */}
       <Text style={styles.tabTitle}>{getTabTitle()}</Text>
       
       <View style={styles.tabContent}>
         {renderTabContent()}
       </View>
 
+      {/* Нижняя навигация */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity 
           style={[styles.navButton, activeTab === 'add' && styles.activeNavButton]}

@@ -1,24 +1,15 @@
-// admin/ActiveTasksTab.js - добавляем кнопку обновления
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+// admin/ActiveTasksTab.js
+import React from 'react'; // useState и useEffect больше не нужны
+import { View, Text, StyleSheet } from 'react-native';
 import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
 
-const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations, onRefresh }) => {
-  const [refreshing, setRefreshing] = useState(false);
-  const [localTasks, setLocalTasks] = useState([]);
+const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations }) => {
+  // ❌ УДАЛИТЬ: const [refreshKey, setRefreshKey] = useState(0);
+  // ❌ УДАЛИТЬ: useEffect(() => { setRefreshKey(prev => prev + 1); }, [pendingConfirmations]);
 
-  useEffect(() => {
-    const filtered = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
-    setLocalTasks(filtered);
-  }, [tasks, selectedWorker, pendingConfirmations]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    if (onRefresh) onRefresh();
-    setTimeout(() => setRefreshing(false), 500);
-  };
+  const activeTasks = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
 
   const getTaskStatus = (task) => {
     const hasPendingArrival = pendingConfirmations?.some(
@@ -27,7 +18,6 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
     const hasPendingCompletion = pendingConfirmations?.some(
       p => p.taskId === task.id && p.type === 'completion' && p.status === 'pending'
     );
-
     if (hasPendingArrival || hasPendingCompletion) return 'pending';
     if (task.isOnSite) return 'onSite';
     return 'offSite';
@@ -57,7 +47,6 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
             {statusConfig.text}
           </Text>
         </View>
-
         {item.lastChecked && !isPending && (
           <View style={styles.lastCheckedContainer}>
             <Text style={styles.lastCheckedIcon}>🔄</Text>
@@ -71,33 +60,24 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
   };
 
   return (
-    <ScrollView
-      style={styles.tabContainer}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#1F4E8C']} />
-      }
-    >
-      <WorkerSelector 
+    // ❌ УБРАТЬ key={refreshKey}
+    <View style={styles.tabContainer}>
+      <WorkerSelector
         selectedWorker={selectedWorker}
         workers={workers}
         setSelectedWorker={setSelectedWorker}
       />
-
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>
-          📋 Всего активных задач: {localTasks.length}
+          📋 Всего активных задач: {activeTasks.length}
         </Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-          <Text style={styles.refreshButtonText}>🔄 Обновить</Text>
-        </TouchableOpacity>
       </View>
-
-      <TaskList 
-        tasks={localTasks}
+      <TaskList
+        tasks={activeTasks}
         renderTaskItem={renderTaskItem}
         emptyMessage="Нет активных задач"
       />
-    </ScrollView>
+    </View>
   );
 };
 
@@ -107,7 +87,7 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 0,
     paddingBottom: 12,
@@ -116,17 +96,6 @@ const styles = StyleSheet.create({
   taskCountText: {
     fontSize: 14,
     color: '#8FA3BF',
-  },
-  refreshButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#E8F0FA',
-    borderRadius: 20,
-  },
-  refreshButtonText: {
-    fontSize: 13,
-    color: '#1F4E8C',
-    fontWeight: '500',
   },
   statusContainer: {
     flexDirection: 'row',
