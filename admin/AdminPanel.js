@@ -19,7 +19,26 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [pendingConfirmations, setPendingConfirmations] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
 
- useEffect(() => {
+useEffect(() => {
+  const confirmationsRef = ref(db, 'photoConfirmations');
+  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const pendingList = Object.entries(data)
+        .map(([id, conf]) => ({ id, ...conf }))
+        .filter(conf => conf.status === 'pending');
+      setPendingConfirmations(pendingList);
+      setPendingCount(pendingList.length);
+    } else {
+      setPendingConfirmations([]);
+      setPendingCount(0);
+    }
+  });
+  // ✅ Безопасное отключение ТОЛЬКО этого слушателя
+  return () => off(confirmationsRef, 'value', unsubscribe);
+}, []);
+
+  useEffect(() => {
   const workersRef = ref(db, 'users');
   const unsubscribe = onValue(workersRef, (snapshot) => {
     if (snapshot.exists()) {
@@ -34,23 +53,10 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
     } else {
       setWorkers([]);
     }
-    setWorkersLoading(false);
+    setWorkersLoading(false); // ✅ Сбрасываем флаг загрузки
   });
-  return () => off(workersRef);
-}, []);
-
-  useEffect(() => {
-    const workersRef = ref(db, 'users');
-    get(workersRef).then((snapshot) => {
-      if (snapshot.exists()) {
-        const workersData = Object.entries(snapshot.val())
-          .filter(([_, data]) => data.userType === 'worker')
-          .map(([username]) => ({ username }));
-        setWorkers(workersData);
-        if (workersData.length) setSelectedWorker(workersData[0].username);
-      }
-    });
-  }, [user]);
+  return () => off(workersRef, 'value', unsubscribe); // ✅ Безопасное отключение
+}, []); 
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -62,7 +68,7 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
             setSelectedWorker={setSelectedWorker}
             workersLoading={workersLoading}
           />
-        );
+        );  
       case 'active':
         return (
           <ActiveTasksTab
