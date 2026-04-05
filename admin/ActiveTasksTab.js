@@ -5,9 +5,7 @@ import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
 
-const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations }) => {
-  // ❌ УДАЛИТЬ: const [refreshKey, setRefreshKey] = useState(0);
-  // ❌ УДАЛИТЬ: useEffect(() => { setRefreshKey(prev => prev + 1); }, [pendingConfirmations]);
+const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations, workersLoading = false }) => {
 
   const activeTasks = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
 
@@ -60,12 +58,12 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
   };
 
   return (
-    // ❌ УБРАТЬ key={refreshKey}
     <View style={styles.tabContainer}>
       <WorkerSelector
         selectedWorker={selectedWorker}
         workers={workers}
         setSelectedWorker={setSelectedWorker}
+        workersLoading={workersLoading}
       />
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>

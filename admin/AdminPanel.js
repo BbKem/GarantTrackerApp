@@ -13,28 +13,30 @@ import PhotoConfirmationsTab from './PhotoConfirmationsTab';
 const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [selectedWorker, setSelectedWorker] = useState('');
   const [workers, setWorkers] = useState([]);
+  const [workersLoading, setWorkersLoading] = useState(true); 
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
-const [pendingConfirmations, setPendingConfirmations] = useState([]);
-const [pendingCount, setPendingCount] = useState(0);
+  const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
 
-useEffect(() => {
-  const confirmationsRef = ref(db, 'photoConfirmations');
-  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+ useEffect(() => {
+  const workersRef = ref(db, 'users');
+  const unsubscribe = onValue(workersRef, (snapshot) => {
     if (snapshot.exists()) {
-      const data = snapshot.val();
-      const pendingList = Object.entries(data)
-        .map(([id, conf]) => ({ id, ...conf }))
-        .filter(conf => conf.status === 'pending');
-      setPendingConfirmations(pendingList);
-      setPendingCount(pendingList.length);
+      const workersData = Object.entries(snapshot.val())
+        .filter(([_, data]) => data.userType === 'worker')
+        .map(([username]) => ({ username }));
+      
+      setWorkers(workersData);
+      if (workersData.length && !selectedWorker) {
+        setSelectedWorker(workersData[0].username);
+      }
     } else {
-      setPendingConfirmations([]);
-      setPendingCount(0);
+      setWorkers([]);
     }
+    setWorkersLoading(false);
   });
-  // ✅ Безопасное отключение только этого слушателя
-  return () => off(confirmationsRef, 'value', unsubscribe);
+  return () => off(workersRef);
 }, []);
 
   useEffect(() => {
@@ -58,6 +60,7 @@ useEffect(() => {
             selectedWorker={selectedWorker}
             workers={workers}
             setSelectedWorker={setSelectedWorker}
+            workersLoading={workersLoading}
           />
         );
       case 'active':
@@ -69,6 +72,7 @@ useEffect(() => {
             workers={workers}
             setSelectedWorker={setSelectedWorker}
             pendingConfirmations={pendingConfirmations}
+            workersLoading={workersLoading}
           />
         );
       case 'completed':
@@ -78,6 +82,7 @@ useEffect(() => {
             selectedWorker={selectedWorker}
             workers={workers}
             setSelectedWorker={setSelectedWorker}
+            workersLoading={workersLoading}
           />
         );
       case 'photos':

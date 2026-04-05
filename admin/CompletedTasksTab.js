@@ -19,7 +19,7 @@ import { ref, set, remove, update } from 'firebase/database';
 import { db } from '../config';
 import { Ionicons } from '@expo/vector-icons';
 
-const CompletedTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker }) => {
+const CompletedTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, workersLoading = false }) => {
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [selectedWorkers, setSelectedWorkers] = useState([]);
   const [deleteAfterExport, setDeleteAfterExport] = useState(false);
@@ -219,6 +219,7 @@ const CompletedTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker }
         selectedWorker={selectedWorker}
         workers={workers}
         setSelectedWorker={setSelectedWorker}
+        workersLoading={workersLoading}
       />
 
       {/* Строка со счётчиком и кнопкой выгрузки */}

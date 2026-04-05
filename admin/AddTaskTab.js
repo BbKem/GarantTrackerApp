@@ -20,7 +20,7 @@ import { formatAddress } from '../utils/helpers';
 import { showAlert } from '../utils/notifications';
 import { TimePickerModal } from '../utils/dateTimePicker';
 
-const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker }) => {
+const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker, workersLoading = false }) => {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskLocation, setTaskLocation] = useState('');
   const [taskTime, setTaskTime] = useState('');
@@ -110,6 +110,7 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker }) => {
           selectedWorker={selectedWorker}
           workers={workers}
           setSelectedWorker={setSelectedWorker}
+          workersLoading={workersLoading}
         />
 
         <View style={styles.inputContainer}>
