@@ -1,13 +1,14 @@
+// common/TaskList.js
 import React from 'react';
 import { FlatList, Text, StyleSheet } from 'react-native';
 
-const TaskList = ({ tasks, renderTaskItem, emptyMessage }) => {
+// ✅ Добавляем extraData в пропсы
+const TaskList = ({ tasks, renderTaskItem, emptyMessage, extraData }) => {
   if (tasks.length === 0) {
     return (
       <Text style={styles.emptyText}>{emptyMessage}</Text>
     );
   }
-
   return (
     <FlatList
       data={tasks}
@@ -15,6 +16,7 @@ const TaskList = ({ tasks, renderTaskItem, emptyMessage }) => {
       keyExtractor={item => item.id}
       scrollEnabled={true}
       style={styles.taskList}
+      extraData={extraData} // ✅ Критично для реактивного обновления
     />
   );
 };

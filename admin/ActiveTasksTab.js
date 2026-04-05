@@ -76,6 +76,7 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
         tasks={activeTasks}
         renderTaskItem={renderTaskItem}
         emptyMessage="Нет активных задач"
+          extraData={pendingConfirmations}
       />
     </View>
   );

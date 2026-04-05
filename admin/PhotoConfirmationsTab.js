@@ -18,28 +18,23 @@ const PhotoConfirmationsTab = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const confirmationsRef = ref(db, 'photoConfirmations');
-    
-    const unsubscribe = onValue(confirmationsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const confirmationsList = Object.entries(data)
-          .map(([id, confirmation]) => ({
-            id,
-            ...confirmation
-          }))
-          .filter(c => c.status === 'pending')
-          .sort((a, b) => b.timestamp - a.timestamp);
-        
-        setConfirmations(confirmationsList);
-      } else {
-        setConfirmations([]);
-      }
-      setLoading(false);
-    });
-
-    return () => off(confirmationsRef);
-  }, []);
+  const confirmationsRef = ref(db, 'photoConfirmations');
+  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const confirmationsList = Object.entries(data)
+        .map(([id, confirmation]) => ({ id, ...confirmation }))
+        .filter(c => c.status === 'pending')
+        .sort((a, b) => b.timestamp - a.timestamp);
+      setConfirmations(confirmationsList);
+    } else {
+      setConfirmations([]);
+    }
+    setLoading(false);
+  });
+  // ✅ Безопасное отключение
+  return () => off(confirmationsRef, 'value', unsubscribe);
+}, []);
 
   const handleApprove = (confirmation) => {
     showConfirm(

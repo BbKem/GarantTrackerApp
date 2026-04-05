@@ -20,14 +20,12 @@ const [pendingCount, setPendingCount] = useState(0);
 
 useEffect(() => {
   const confirmationsRef = ref(db, 'photoConfirmations');
-  
   const unsubscribe = onValue(confirmationsRef, (snapshot) => {
     if (snapshot.exists()) {
       const data = snapshot.val();
       const pendingList = Object.entries(data)
         .map(([id, conf]) => ({ id, ...conf }))
         .filter(conf => conf.status === 'pending');
-      
       setPendingConfirmations(pendingList);
       setPendingCount(pendingList.length);
     } else {
@@ -35,8 +33,8 @@ useEffect(() => {
       setPendingCount(0);
     }
   });
-
-  return () => off(confirmationsRef);
+  // ✅ Безопасное отключение только этого слушателя
+  return () => off(confirmationsRef, 'value', unsubscribe);
 }, []);
 
   useEffect(() => {
