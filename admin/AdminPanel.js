@@ -1,6 +1,6 @@
-// admin/AdminPanel.js - исправленная версия
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
+// admin/AdminPanel.js - по аналогии с WorkerPanel
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ref, get, onValue, off } from 'firebase/database';
 import { db } from '../config';
@@ -17,10 +17,8 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [profileVisible, setProfileVisible] = useState(false);
   const [pendingConfirmations, setPendingConfirmations] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
-  // Добавляем счетчик для принудительного обновления
-  const [updateCounter, setUpdateCounter] = useState(0);
 
-  // Следим за изменениями в photoConfirmations
+  // ТОЧНО ТАКОЙ ЖЕ useEffect как у работника
   useEffect(() => {
     const confirmationsRef = ref(db, 'photoConfirmations');
     
@@ -33,23 +31,14 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
         
         setPendingConfirmations(pendingList);
         setPendingCount(pendingList.length);
-        // Принудительно обновляем активную вкладку при изменении подтверждений
-        setUpdateCounter(prev => prev + 1);
       } else {
         setPendingConfirmations([]);
         setPendingCount(0);
-        setUpdateCounter(prev => prev + 1);
       }
     });
 
     return () => off(confirmationsRef);
   }, []);
-
-  // Следим за изменениями в задачах
-  useEffect(() => {
-    // При каждом изменении задач обновляем счетчик
-    setUpdateCounter(prev => prev + 1);
-  }, [tasks]);
 
   useEffect(() => {
     const workersRef = ref(db, 'users');
@@ -64,13 +53,11 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
     });
   }, [user]);
 
-  // Обновленная функция рендера с передачей ключа
-  const renderTabContent = useCallback(() => {
+  const renderTabContent = () => {
     switch (activeTab) {
       case 'add':
         return (
           <AddTaskTab
-            key={`add-${updateCounter}`}
             selectedWorker={selectedWorker}
             workers={workers}
             setSelectedWorker={setSelectedWorker}
@@ -79,7 +66,6 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
       case 'active':
         return (
           <ActiveTasksTab
-            key={`active-${updateCounter}-${selectedWorker}`}
             tasks={tasks}
             selectedWorker={selectedWorker}
             workers={workers}
@@ -90,7 +76,6 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
       case 'completed':
         return (
           <CompletedTasksTab
-            key={`completed-${updateCounter}-${selectedWorker}`}
             tasks={tasks}
             selectedWorker={selectedWorker}
             workers={workers}
@@ -98,13 +83,12 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
           />
         );
       case 'photos':
-        return <PhotoConfirmationsTab key={`photos-${updateCounter}`} />;
+        return <PhotoConfirmationsTab />;
       default:
         return null;
     }
-  }, [activeTab, selectedWorker, workers, tasks, pendingConfirmations, updateCounter]);
+  };
 
-  // Получаем название текущей вкладки
   const getTabTitle = () => {
     switch (activeTab) {
       case 'add': return 'Добавление задачи';
@@ -117,7 +101,6 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
 
   return (
     <View style={styles.container}>
-      {/* Шапка с логотипом по центру и профилем справа */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image 
@@ -141,14 +124,12 @@ const AdminPanel = ({ user, onSignOut, tasks }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Заголовок текущей вкладки */}
       <Text style={styles.tabTitle}>{getTabTitle()}</Text>
       
       <View style={styles.tabContent}>
         {renderTabContent()}
       </View>
 
-      {/* Нижняя навигация */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity 
           style={[styles.navButton, activeTab === 'add' && styles.activeNavButton]}
