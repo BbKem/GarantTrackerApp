@@ -1,4 +1,4 @@
-// admin/PhotoConfirmationsTab.js
+// admin/PhotoConfirmationsTab.js - добавляем кнопку обновления
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -7,17 +7,24 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { ref, onValue, off, update } from 'firebase/database';
 import { db } from '../config';
 import { showAlert, showConfirm } from '../utils/notifications';
-import eventEmitter from '../utils/eventEmitter';
 
-const PhotoConfirmationsTab = () => {
+const PhotoConfirmationsTab = ({ onRefresh }) => {
   const [confirmations, setConfirmations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = () => {
+    setRefreshing(true);
+    // Просто перечитываем данные - onValue сам обновит
+    setTimeout(() => setRefreshing(false), 500);
+    if (onRefresh) onRefresh();
+  };
 
   useEffect(() => {
     const confirmationsRef = ref(db, 'photoConfirmations');
@@ -38,18 +45,9 @@ const PhotoConfirmationsTab = () => {
         setConfirmations([]);
       }
       setLoading(false);
-      setRefreshKey(prev => prev + 1);
     });
 
-    // Слушаем событие принудительного обновления
-    const unsubscribeEvent = eventEmitter.on('forceUpdate', () => {
-      setRefreshKey(prev => prev + 1);
-    });
-
-    return () => {
-      off(confirmationsRef);
-      unsubscribeEvent();
-    };
+    return () => off(confirmationsRef);
   }, []);
 
   const handleApprove = (confirmation) => {
@@ -58,14 +56,12 @@ const PhotoConfirmationsTab = () => {
       `Подтвердить ${confirmation.type === 'arrival' ? 'прибытие' : 'завершение'} задачи?`,
       async () => {
         try {
-          // Обновляем статус подтверждения
           await update(ref(db, `photoConfirmations/${confirmation.id}`), {
             status: 'approved',
             approvedAt: Date.now(),
             approvedBy: 'admin'
           });
 
-          // Обновляем задачу
           const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
           
           if (confirmation.type === 'arrival') {
@@ -82,10 +78,11 @@ const PhotoConfirmationsTab = () => {
             });
           }
           
-          // Принудительно обновляем все компоненты
-          eventEmitter.emit('forceUpdate');
-          
           showAlert('Успех', 'Подтверждение принято');
+          // Принудительно обновляем
+          setTimeout(() => {
+            if (onRefresh) onRefresh();
+          }, 500);
           
         } catch (error) {
           console.error('Ошибка подтверждения:', error);
@@ -101,13 +98,11 @@ const PhotoConfirmationsTab = () => {
       'Вы уверены, что хотите отклонить этот запрос?',
       async () => {
         try {
-          // Обновляем статус подтверждения
           await update(ref(db, `photoConfirmations/${confirmation.id}`), {
             status: 'rejected',
             rejectedAt: Date.now()
           });
           
-          // Обновляем задачу в зависимости от типа
           const taskRef = ref(db, `tasks/${confirmation.workerId}/${confirmation.taskId}`);
           
           if (confirmation.type === 'arrival') {
@@ -125,10 +120,11 @@ const PhotoConfirmationsTab = () => {
             });
           }
           
-          // Принудительно обновляем все компоненты
-          eventEmitter.emit('forceUpdate');
-          
           showAlert('Успех', 'Запрос отклонен');
+          // Принудительно обновляем
+          setTimeout(() => {
+            if (onRefresh) onRefresh();
+          }, 500);
           
         } catch (error) {
           console.error('Ошибка отклонения:', error);
@@ -215,24 +211,15 @@ const PhotoConfirmationsTab = () => {
     );
   }
 
-  if (confirmations.length === 0) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.emptyEmoji}>📷</Text>
-        <Text style={styles.emptyText}>Нет ожидающих подтверждений</Text>
-        <Text style={styles.emptySubtext}>
-          Запросы на фото-подтверждение появятся здесь
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container} key={refreshKey}>
+    <View style={styles.container}>
       <View style={styles.headerSection}>
         <Text style={styles.taskCountText}>
           📋 Всего на проверке: {confirmations.length}
         </Text>
+        <TouchableOpacity style={styles.refreshButton} onPress={loadData}>
+          <Text style={styles.refreshButtonText}>🔄 Обновить</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -241,6 +228,18 @@ const PhotoConfirmationsTab = () => {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={loadData} colors={['#1F4E8C']} />
+        }
+        ListEmptyComponent={
+          <View style={styles.centerContainer}>
+            <Text style={styles.emptyEmoji}>📷</Text>
+            <Text style={styles.emptyText}>Нет ожидающих подтверждений</Text>
+            <Text style={styles.emptySubtext}>
+              Запросы на фото-подтверждение появятся здесь
+            </Text>
+          </View>
+        }
       />
     </View>
   );
@@ -252,7 +251,7 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 0,
     paddingVertical: 12,
@@ -261,6 +260,17 @@ const styles = StyleSheet.create({
   taskCountText: {
     fontSize: 14,
     color: '#8FA3BF',
+  },
+  refreshButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#E8F0FA',
+    borderRadius: 20,
+  },
+  refreshButtonText: {
+    fontSize: 13,
+    color: '#1F4E8C',
+    fontWeight: '500',
   },
   centerContainer: {
     flex: 1,

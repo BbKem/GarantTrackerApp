@@ -1,28 +1,24 @@
-// admin/ActiveTasksTab.js
+// admin/ActiveTasksTab.js - добавляем кнопку обновления
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
-import eventEmitter from '../utils/eventEmitter';
 
-const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations }) => {
-  const [refreshKey, setRefreshKey] = useState(0);
+const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pendingConfirmations, onRefresh }) => {
+  const [refreshing, setRefreshing] = useState(false);
   const [localTasks, setLocalTasks] = useState([]);
 
-  // Слушаем событие принудительного обновления
-  useEffect(() => {
-    const unsubscribe = eventEmitter.on('forceUpdate', () => {
-      setRefreshKey(prev => prev + 1);
-    });
-    return unsubscribe;
-  }, []);
-
-  // Обновляем локальные задачи при изменении пропсов или при forceUpdate
   useEffect(() => {
     const filtered = tasks.filter(t => t.assignedTo === selectedWorker && !t.completed);
     setLocalTasks(filtered);
-  }, [tasks, selectedWorker, refreshKey, pendingConfirmations]);
+  }, [tasks, selectedWorker, pendingConfirmations]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    if (onRefresh) onRefresh();
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   const getTaskStatus = (task) => {
     const hasPendingArrival = pendingConfirmations?.some(
@@ -75,7 +71,12 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
   };
 
   return (
-    <View style={styles.tabContainer}>
+    <ScrollView
+      style={styles.tabContainer}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#1F4E8C']} />
+      }
+    >
       <WorkerSelector 
         selectedWorker={selectedWorker}
         workers={workers}
@@ -86,6 +87,9 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
         <Text style={styles.taskCountText}>
           📋 Всего активных задач: {localTasks.length}
         </Text>
+        <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
+          <Text style={styles.refreshButtonText}>🔄 Обновить</Text>
+        </TouchableOpacity>
       </View>
 
       <TaskList 
@@ -93,7 +97,7 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
         renderTaskItem={renderTaskItem}
         emptyMessage="Нет активных задач"
       />
-    </View>
+    </ScrollView>
   );
 };
 
@@ -103,7 +107,7 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 0,
     paddingBottom: 12,
@@ -112,6 +116,17 @@ const styles = StyleSheet.create({
   taskCountText: {
     fontSize: 14,
     color: '#8FA3BF',
+  },
+  refreshButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#E8F0FA',
+    borderRadius: 20,
+  },
+  refreshButtonText: {
+    fontSize: 13,
+    color: '#1F4E8C',
+    fontWeight: '500',
   },
   statusContainer: {
     flexDirection: 'row',
