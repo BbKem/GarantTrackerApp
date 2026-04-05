@@ -1,97 +1,56 @@
-// admin/AdminPanel.js
+// admin/AdminPanel.js - исправленная версия
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ref, onValue, off } from 'firebase/database';
+import { ref, get, onValue, off } from 'firebase/database';
 import { db } from '../config';
-
 import ProfileModal from '../common/ProfileModal';
 import AddTaskTab from './AddTaskTab';
 import ActiveTasksTab from './ActiveTasksTab';
 import CompletedTasksTab from './CompletedTasksTab';
 import PhotoConfirmationsTab from './PhotoConfirmationsTab';
 
-const AdminPanel = ({ user, onSignOut }) => {
-  const [tasks, setTasks] = useState([]);
+const AdminPanel = ({ user, onSignOut, tasks }) => {
   const [selectedWorker, setSelectedWorker] = useState('');
   const [workers, setWorkers] = useState([]);
   const [activeTab, setActiveTab] = useState('add');
   const [profileVisible, setProfileVisible] = useState(false);
+const [pendingConfirmations, setPendingConfirmations] = useState([]);
+const [pendingCount, setPendingCount] = useState(0);
 
-  const [pendingConfirmations, setPendingConfirmations] = useState([]);
-  const [pendingCount, setPendingCount] = useState(0);
+useEffect(() => {
+  const confirmationsRef = ref(db, 'photoConfirmations');
+  
+  const unsubscribe = onValue(confirmationsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const pendingList = Object.entries(data)
+        .map(([id, conf]) => ({ id, ...conf }))
+        .filter(conf => conf.status === 'pending');
+      
+      setPendingConfirmations(pendingList);
+      setPendingCount(pendingList.length);
+    } else {
+      setPendingConfirmations([]);
+      setPendingCount(0);
+    }
+  });
 
-  // ✅ TASKS realtime
-  useEffect(() => {
-    const tasksRef = ref(db, 'tasks');
+  return () => off(confirmationsRef);
+}, []);
 
-    onValue(tasksRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const allTasks = [];
-
-        Object.entries(data).forEach(([workerId, workerTasks]) => {
-          Object.entries(workerTasks).forEach(([taskId, task]) => {
-            allTasks.push({
-              id: taskId,
-              workerId,
-              ...task,
-            });
-          });
-        });
-
-        setTasks(allTasks);
-      } else {
-        setTasks([]);
-      }
-    });
-
-    return () => off(tasksRef);
-  }, []);
-
-  // ✅ CONFIRMATIONS realtime
-  useEffect(() => {
-    const confirmationsRef = ref(db, 'photoConfirmations');
-
-    onValue(confirmationsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-
-        const pendingList = Object.entries(data)
-          .map(([id, conf]) => ({ id, ...conf }))
-          .filter(conf => conf.status === 'pending');
-
-        setPendingConfirmations(pendingList);
-        setPendingCount(pendingList.length);
-      } else {
-        setPendingConfirmations([]);
-        setPendingCount(0);
-      }
-    });
-
-    return () => off(confirmationsRef);
-  }, []);
-
-  // ✅ WORKERS realtime
   useEffect(() => {
     const workersRef = ref(db, 'users');
-
-    onValue(workersRef, (snapshot) => {
+    get(workersRef).then((snapshot) => {
       if (snapshot.exists()) {
         const workersData = Object.entries(snapshot.val())
           .filter(([_, data]) => data.userType === 'worker')
           .map(([username]) => ({ username }));
-
         setWorkers(workersData);
-
-        if (workersData.length && !selectedWorker) {
-          setSelectedWorker(workersData[0].username);
-        }
+        if (workersData.length) setSelectedWorker(workersData[0].username);
       }
     });
-
-    return () => off(workersRef);
-  }, []);
+  }, [user]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -129,6 +88,7 @@ const AdminPanel = ({ user, onSignOut }) => {
     }
   };
 
+  // Получаем название текущей вкладки
   const getTabTitle = () => {
     switch (activeTab) {
       case 'add': return 'Добавление задачи';
@@ -141,57 +101,101 @@ const AdminPanel = ({ user, onSignOut }) => {
 
   return (
     <View style={styles.container}>
+      {/* Шапка с логотипом по центру и профилем справа */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Image source={require('../assets/logo.png')} style={styles.logoImage} />
+          <Image 
+            source={require('../assets/logo.png')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
-
-        <TouchableOpacity
+        <TouchableOpacity 
           style={styles.profileButton}
           onPress={() => setProfileVisible(true)}
         >
           {user?.photoURL ? (
-            <Image source={{ uri: user.photoURL }} style={styles.profileImage} />
+            <Image 
+              source={{ uri: user.photoURL }} 
+              style={styles.profileImage}
+            />
           ) : (
             <Ionicons name="person-circle" size={44} color="#1F4E8C" />
           )}
         </TouchableOpacity>
       </View>
 
+      {/* Заголовок текущей вкладки */}
       <Text style={styles.tabTitle}>{getTabTitle()}</Text>
-
+      
       <View style={styles.tabContent}>
         {renderTabContent()}
       </View>
 
+      {/* Нижняя навигация */}
       <View style={styles.bottomNavigation}>
-        {[
-          { key: 'add', icon: 'add-circle-outline', label: 'Добавить' },
-          { key: 'active', icon: 'play-circle-outline', label: 'Активные' },
-          { key: 'completed', icon: 'checkmark-done-circle-outline', label: 'Завершённые' },
-          { key: 'photos', icon: 'camera-outline', label: 'Фото' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.navButton, activeTab === tab.key && styles.activeNavButton]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Ionicons
-              name={tab.icon}
-              size={24}
-              color={activeTab === tab.key ? '#1F4E8C' : '#8FA3BF'}
-            />
-            <Text style={[styles.navText, activeTab === tab.key && styles.activeNavText]}>
-              {tab.label}
-            </Text>
+        <TouchableOpacity 
+          style={[styles.navButton, activeTab === 'add' && styles.activeNavButton]}
+          onPress={() => setActiveTab('add')}
+        >
+          <Ionicons 
+            name="add-circle-outline" 
+            size={24} 
+            color={activeTab === 'add' ? '#1F4E8C' : '#8FA3BF'} 
+          />
+          <Text style={[styles.navText, activeTab === 'add' && styles.activeNavText]}>
+            Добавить
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.navButton, activeTab === 'active' && styles.activeNavButton]}
+          onPress={() => setActiveTab('active')}
+        >
+          <Ionicons 
+            name="play-circle-outline" 
+            size={24} 
+            color={activeTab === 'active' ? '#1F4E8C' : '#8FA3BF'} 
+          />
+          <Text style={[styles.navText, activeTab === 'active' && styles.activeNavText]}>
+            Активные
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.navButton, activeTab === 'completed' && styles.activeNavButton]}
+          onPress={() => setActiveTab('completed')}
+        >
+          <Ionicons 
+            name="checkmark-done-circle-outline" 
+            size={24} 
+            color={activeTab === 'completed' ? '#1F4E8C' : '#8FA3BF'} 
+          />
+          <Text style={[styles.navText, activeTab === 'completed' && styles.activeNavText]}>
+            Завершённые
+          </Text>
+        </TouchableOpacity>
 
-            {tab.key === 'photos' && pendingCount > 0 && (
+        <TouchableOpacity 
+          style={[styles.navButton, activeTab === 'photos' && styles.activeNavButton]}
+          onPress={() => setActiveTab('photos')}
+        >
+          <View style={styles.photoNavContent}>
+            <Ionicons 
+              name="camera-outline" 
+              size={24} 
+              color={activeTab === 'photos' ? '#1F4E8C' : '#8FA3BF'} 
+            />
+            <Text style={[styles.navText, activeTab === 'photos' && styles.activeNavText]}>
+              Фото
+            </Text>
+            {pendingCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{pendingCount}</Text>
               </View>
             )}
-          </TouchableOpacity>
-        ))}
+          </View>
+        </TouchableOpacity>
       </View>
 
       <ProfileModal
@@ -205,37 +209,108 @@ const AdminPanel = ({ user, onSignOut }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F7FB' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F4F7FB',
+  },
   header: {
     height: 150,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    position: 'relative',
   },
-  logoContainer: { alignItems: 'center' },
-  logoImage: { width: 120, height: 120 },
-  profileButton: { position: 'absolute', right: 16, top: 50 },
-  profileImage: { width: 44, height: 44, borderRadius: 22 },
-
-  tabTitle: { textAlign: 'center', padding: 10, color: '#1F4E8C' },
-  tabContent: { flex: 1, padding: 16 },
-
-  bottomNavigation: { flexDirection: 'row', backgroundColor: '#fff', padding: 10 },
-  navButton: { flex: 1, alignItems: 'center' },
-  activeNavButton: { backgroundColor: '#F4F7FB' },
-
-  navText: { fontSize: 12, color: '#8FA3BF' },
-  activeNavText: { color: '#1F4E8C' },
-
+  logoContainer: {
+    alignItems: 'center',
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+  },
+  profileButton: {
+    position: 'absolute',
+    right: 16,
+    top: 50,
+    bottom: 16,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  profileImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#1F4E8C',
+  },
+  tabTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#F4F7FB',
+    color: '#1F4E8C',
+  },
+  tabContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  bottomNavigation: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  navButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  activeNavButton: {
+    backgroundColor: '#F4F7FB',
+  },
+  navText: {
+    fontSize: 12,
+    color: '#8FA3BF',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  activeNavText: {
+    color: '#1F4E8C',
+    fontWeight: '600',
+  },
+  photoNavContent: {
+    alignItems: 'center',
+    position: 'relative',
+  },
   badge: {
     position: 'absolute',
-    top: -5,
-    right: 10,
+    top: -8,
+    right: -12,
     backgroundColor: '#FF6B6B',
-    borderRadius: 10,
-    paddingHorizontal: 5,
+    borderRadius: 12,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
-  badgeText: { color: '#fff', fontSize: 10 },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
 });
 
 export default AdminPanel;
