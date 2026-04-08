@@ -644,7 +644,7 @@ const WorkerPanel = ({ user, onSignOut, tasks }) => {
         >
        <Image 
   source={require('../assets/activ_icon.png')} 
-  style={{ width: 24, height: 24, tintColor: activeTab === 'active' ? '#1F4E8C' : '#8FA3BF' }} 
+  style={{ width: 24, height: 24, tintColor: '#1F4E8C'}} 
 />
           <Text style={[styles.navText, activeTab === 'active' && styles.activeNavText]}>
             Активные
@@ -657,7 +657,7 @@ const WorkerPanel = ({ user, onSignOut, tasks }) => {
         >
             <Image 
   source={require('../assets/zavercheno_icon.png')} 
-  style={{ width: 24, height: 24, tintColor: activeTab === 'completed' ? '#1F4E8C' : '#8FA3BF' }} 
+  style={{ width: 24, height: 24, tintColor:'#1F4E8C'}} 
 />
           <Text style={[styles.navText, activeTab === 'completed' && styles.activeNavText]}>
             Завершённые
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   },
   navText: {
     fontSize: 12,
-    color: '#8FA3BF',
+    color: '#1F4E8C',
     marginTop: 4,
     fontWeight: '500',
   },

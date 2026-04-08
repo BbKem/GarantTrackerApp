@@ -147,7 +147,7 @@ useEffect(() => {
           style={[styles.navButton, activeTab === 'add' && styles.activeNavButton]}
           onPress={() => setActiveTab('add')}
         >
-         <Image source={require('../assets/free-icon-plus-3303893.png')} style={{ width: 22, height: 22, tintColor: activeTab === 'add' ? '#1F4E8C' : '#8FA3BF'}} />
+         <Image source={require('../assets/free-icon-plus-3303893.png')} style={{ width: 22, height: 22, tintColor:'#1F4E8C'}} />
           <Text style={[styles.navText, activeTab === 'add' && styles.activeNavText]}>
             Добавить
           </Text>
@@ -157,7 +157,7 @@ useEffect(() => {
           style={[styles.navButton, activeTab === 'active' && styles.activeNavButton]}
           onPress={() => setActiveTab('active')}
         >
-           <Image source={require('../assets/activ_icon.png')} style={{ width: 22, height: 22, tintColor: activeTab === 'active' ? '#1F4E8C' : '#8FA3BF'}} />
+           <Image source={require('../assets/activ_icon.png')} style={{ width: 22, height: 22, tintColor:'#1F4E8C'}} />
           <Text style={[styles.navText, activeTab === 'active' && styles.activeNavText]}>
             Активные
           </Text>
@@ -167,7 +167,7 @@ useEffect(() => {
           style={[styles.navButton, activeTab === 'completed' && styles.activeNavButton]}
           onPress={() => setActiveTab('completed')}
         >
-           <Image source={require('../assets/zavercheno_icon.png')} style={{ width: 22, height: 22, tintColor: activeTab === 'completed' ? '#1F4E8C' : '#8FA3BF'}} />
+           <Image source={require('../assets/zavercheno_icon.png')} style={{ width: 22, height: 22, tintColor:'#1F4E8C'}} />
           <Text style={[styles.navText, activeTab === 'completed' && styles.activeNavText]}>
             Завершённые
           </Text>
@@ -178,7 +178,7 @@ useEffect(() => {
           onPress={() => setActiveTab('photos')}
         >
           <View style={styles.photoNavContent}>
-             <Image source={require('../assets/free-icon-camera-685655.png')} style={{ width: 22, height: 22, tintColor: activeTab === 'photos' ? '#1F4E8C' : '#8FA3BF'}} />
+             <Image source={require('../assets/free-icon-camera-685655.png')} style={{ width: 22, height: 22, tintColor:'#1F4E8C'}} />
             <Text style={[styles.navText, activeTab === 'photos' && styles.activeNavText]}>
               Фото
             </Text>
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   navText: {
     fontSize: 12,
-    color: '#8FA3BF',
+    color: '#1F4E8C',
     marginTop: 4,
     fontWeight: '500',
   },
