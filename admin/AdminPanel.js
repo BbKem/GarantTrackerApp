@@ -1,7 +1,6 @@
 // admin/AdminPanel.js - исправленная версия
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { ref, get, onValue, off } from 'firebase/database';
 import { db } from '../config';
 import ProfileModal from '../common/ProfileModal';
@@ -130,7 +129,7 @@ useEffect(() => {
               style={styles.profileImage}
             />
           ) : (
-            <Ionicons name="person-circle" size={44} color="#1F4E8C" />
+            <Image source={require('../assets/free-icon-profile-9344418.png')} style={{ width: 32, height: 32,  tintColor: '#1F4E8C'}} />
           )}
         </TouchableOpacity>
       </View>
@@ -148,11 +147,7 @@ useEffect(() => {
           style={[styles.navButton, activeTab === 'add' && styles.activeNavButton]}
           onPress={() => setActiveTab('add')}
         >
-          <Ionicons 
-            name="add-circle-outline" 
-            size={24} 
-            color={activeTab === 'add' ? '#1F4E8C' : '#8FA3BF'} 
-          />
+         <Image source={require('../assets/free-icon-plus-3303893.png')} style={{ width: 22, height: 22, tintColor: activeTab === 'add' ? '#1F4E8C' : '#8FA3BF'}} />
           <Text style={[styles.navText, activeTab === 'add' && styles.activeNavText]}>
             Добавить
           </Text>
@@ -162,11 +157,7 @@ useEffect(() => {
           style={[styles.navButton, activeTab === 'active' && styles.activeNavButton]}
           onPress={() => setActiveTab('active')}
         >
-          <Ionicons 
-            name="play-circle-outline" 
-            size={24} 
-            color={activeTab === 'active' ? '#1F4E8C' : '#8FA3BF'} 
-          />
+           <Image source={require('../assets/activ_icon.png')} style={{ width: 22, height: 22, tintColor: activeTab === 'active' ? '#1F4E8C' : '#8FA3BF'}} />
           <Text style={[styles.navText, activeTab === 'active' && styles.activeNavText]}>
             Активные
           </Text>
@@ -176,11 +167,7 @@ useEffect(() => {
           style={[styles.navButton, activeTab === 'completed' && styles.activeNavButton]}
           onPress={() => setActiveTab('completed')}
         >
-          <Ionicons 
-            name="checkmark-done-circle-outline" 
-            size={24} 
-            color={activeTab === 'completed' ? '#1F4E8C' : '#8FA3BF'} 
-          />
+           <Image source={require('../assets/zavercheno_icon.png')} style={{ width: 22, height: 22, tintColor: activeTab === 'completed' ? '#1F4E8C' : '#8FA3BF'}} />
           <Text style={[styles.navText, activeTab === 'completed' && styles.activeNavText]}>
             Завершённые
           </Text>
@@ -191,11 +178,7 @@ useEffect(() => {
           onPress={() => setActiveTab('photos')}
         >
           <View style={styles.photoNavContent}>
-            <Ionicons 
-              name="camera-outline" 
-              size={24} 
-              color={activeTab === 'photos' ? '#1F4E8C' : '#8FA3BF'} 
-            />
+             <Image source={require('../assets/free-icon-camera-685655.png')} style={{ width: 22, height: 22, tintColor: activeTab === 'photos' ? '#1F4E8C' : '#8FA3BF'}} />
             <Text style={[styles.navText, activeTab === 'photos' && styles.activeNavText]}>
               Фото
             </Text>

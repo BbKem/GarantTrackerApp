@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, ActivityIndicator, Image } from 'react-native';
 
 const WorkerSelector = ({ selectedWorker, workers, setSelectedWorker, workersLoading = false }) => {
   const [modalVisible, setModalVisible] = React.useState(false);
@@ -17,20 +16,20 @@ const WorkerSelector = ({ selectedWorker, workers, setSelectedWorker, workersLoa
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Работник</Text>
-      <TouchableOpacity
-        style={[styles.selector, workersLoading && styles.selectorDisabled]}
-        onPress={() => !workersLoading && setModalVisible(true)}
-        disabled={workersLoading}
-      >
-        <Text style={[styles.selectedText, workersLoading && styles.selectedTextLoading]}>
-          {selectedWorkerName}
-        </Text>
-        {workersLoading ? (
-          <ActivityIndicator size="small" color="#8FA3BF" />
-        ) : (
-          <Ionicons name="chevron-down" size={20} color="#8FA3BF" />
-        )}
-      </TouchableOpacity>
+    <TouchableOpacity
+  style={[styles.selector, workersLoading && styles.selectorDisabled]}
+  onPress={() => !workersLoading && setModalVisible(true)}
+  disabled={workersLoading}
+>
+  <Text style={[styles.selectedText, workersLoading && styles.selectedTextLoading]}>
+    {selectedWorkerName}
+  </Text>
+  {workersLoading ? (
+    <ActivityIndicator size="small" color="#8FA3BF" />
+  ) : (
+    <Image source={require('../assets/free-icon-down-arrow-2985150.png')} style={{ width: 20, height: 20, tintColor: '#8FA3BF' }} />
+  )}
+</TouchableOpacity>
       
       <Modal
         animationType="fade"
@@ -47,7 +46,7 @@ const WorkerSelector = ({ selectedWorker, workers, setSelectedWorker, workersLoa
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Выберите работника</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#8FA3BF" />
+                    <Image source={require('../assets/free-icon-close-4013407.png')} style={{ width: 20, height: 20, tintColor: '#8FA3BF' }} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -62,11 +61,11 @@ const WorkerSelector = ({ selectedWorker, workers, setSelectedWorker, workersLoa
                   onPress={() => handleSelectWorker(item)}
                 >
                   <View style={styles.workerInfo}>
-                    <Ionicons name="person-outline" size={20} color="#1F4E8C" />
+                        <Image source={require('../assets/free-icon-user-456212.png')} style={{ width: 15, height: 15, tintColor: '#1F4E8C' }} />
                     <Text style={styles.workerName}>{item.username}</Text>
                   </View>
                   {selectedWorker === item.username && (
-                    <Ionicons name="checkmark" size={20} color="#1F4E8C" />
+                    <Image source={require('../assets/free-icon-checkmarks-11229517.png')} style={{ width: 18, height: 18, tintColor: '#1F4E8C' }} />
                   )}
                 </TouchableOpacity>
               )}

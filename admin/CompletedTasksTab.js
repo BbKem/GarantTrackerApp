@@ -8,7 +8,8 @@ import {
   Platform,
   Modal,
   FlatList,
-  Switch
+  Switch,
+  Image
 } from 'react-native';
 import WorkerSelector from '../common/WorkerSelector';
 import TaskList from '../common/TaskList';
@@ -17,7 +18,6 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { ref, set, remove, update } from 'firebase/database';
 import { db } from '../config';
-import { Ionicons } from '@expo/vector-icons';
 
 const CompletedTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, workersLoading = false }) => {
   const [exportModalVisible, setExportModalVisible] = useState(false);
@@ -185,7 +185,7 @@ const CompletedTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, 
           </Text>
         </View>
         <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-          {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+          {isSelected &&  <Image source={require('../assets/free-icon-checkmarks-11229517.png')} style={{ width: 20, height: 20, tintColor: '#fff' }} />}
         </View>
       </TouchableOpacity>
     );
@@ -194,14 +194,12 @@ const CompletedTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, 
   const renderTaskItem = ({ item }) => (
     <TaskCard task={item} completed={true}>
       <View style={styles.completionInfo}>
-        <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
         <Text style={styles.completionTime}>
           Завершено: {item.completedAt ? new Date(item.completedAt).toLocaleString() : 'нет данных'}
         </Text>
       </View>
       {item.lastChecked && (
         <View style={styles.arrivalInfo}>
-          <Ionicons name="location-outline" size={12} color="#1F4E8C" />
           <Text style={styles.arrivalTime}>
             Прибытие: {new Date(item.lastChecked).toLocaleString()}
           </Text>
@@ -232,7 +230,6 @@ const CompletedTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, 
             style={styles.exportButton}
             onPress={openExportModal}
           >
-            <Ionicons name="download-outline" size={16} color="#1F4E8C" />
             <Text style={styles.exportButtonText}>Выгрузить CSV</Text>
           </TouchableOpacity>
         )}
@@ -263,7 +260,7 @@ const CompletedTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Выгрузка задач</Text>
               <TouchableOpacity onPress={() => setExportModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#8FA3BF" />
+                 <Image source={require('../assets/free-icon-close-4013407.png')} style={{ width: 24, height: 24, tintColor: '#8FA3BF' }} />
               </TouchableOpacity>
             </View>
             

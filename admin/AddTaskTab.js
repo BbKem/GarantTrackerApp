@@ -155,7 +155,7 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker, workersLoading
                           setShowSuggestions(false);
                         }}
                       >
-                        <Text style={styles.suggestionText}>📍 {formatAddress(item)}</Text>
+                        <Text style={styles.suggestionText}> {formatAddress(item)}</Text>
                       </TouchableOpacity>
                     )}
                     keyExtractor={(item) => item.place_id.toString()}
@@ -174,7 +174,7 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker, workersLoading
             style={styles.timeInput}
           >
             <Text style={taskTime ? styles.timeText : styles.timePlaceholder}>
-              {taskTime || 'Выберите время ⏰'}
+              {taskTime || 'Выберите время'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -194,7 +194,7 @@ const AddTaskTab = ({ selectedWorker, workers, setSelectedWorker, workersLoading
           {isFetchingAddresses ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={styles.addButtonText}>➕ Добавить задачу</Text>
+            <Text style={styles.addButtonText}>Добавить задачу</Text>
           )}
         </TouchableOpacity>
         

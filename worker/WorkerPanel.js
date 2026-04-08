@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { ref, update, onValue, off } from 'firebase/database';
 import { db } from '../config';
 import * as Location from 'expo-location';
@@ -623,7 +622,7 @@ const WorkerPanel = ({ user, onSignOut, tasks }) => {
               style={styles.profileImage}
             />
           ) : (
-            <Ionicons name="person-circle" size={44} color="#1F4E8C" />
+            <Image source={require('../assets/free-icon-profile-9344418.png')} style={{ width: 32, height: 32,  tintColor: '#1F4E8C'}} />
           )}
         </TouchableOpacity>
       </View>
@@ -643,7 +642,10 @@ const WorkerPanel = ({ user, onSignOut, tasks }) => {
           style={[styles.navButton, activeTab === 'active' && styles.activeNavButton]}
           onPress={() => setActiveTab('active')}
         >
-        <Image source={require('../assets/activ_icon.png')} style={styles.navIcon} />
+       <Image 
+  source={require('../assets/activ_icon.png')} 
+  style={{ width: 24, height: 24, tintColor: activeTab === 'active' ? '#1F4E8C' : '#8FA3BF' }} 
+/>
           <Text style={[styles.navText, activeTab === 'active' && styles.activeNavText]}>
             Активные
           </Text>
@@ -653,11 +655,10 @@ const WorkerPanel = ({ user, onSignOut, tasks }) => {
           style={[styles.navButton, activeTab === 'completed' && styles.activeNavButton]}
           onPress={() => setActiveTab('completed')}
         >
-          <Ionicons 
-            name="checkmark-done-circle-outline" 
-            size={24} 
-            color={activeTab === 'completed' ? '#1F4E8C' : '#8FA3BF'} 
-          />
+            <Image 
+  source={require('../assets/zavercheno_icon.png')} 
+  style={{ width: 24, height: 24, tintColor: activeTab === 'completed' ? '#1F4E8C' : '#8FA3BF' }} 
+/>
           <Text style={[styles.navText, activeTab === 'completed' && styles.activeNavText]}>
             Завершённые
           </Text>

@@ -93,7 +93,7 @@ const PhotoConfirmationModal = ({
           {/* Заголовок */}
           <View style={styles.header}>
             <View style={styles.headerIcon}>
-              <Text style={styles.headerEmoji}>📸</Text>
+                <Image source={require('../assets/free-icon-camera-482889.png')} style={{ width: 24, height: 24,  tintColor: '#1F4E8C'}} />
             </View>
             <Text style={styles.title}>
               {confirmationType === 'arrival' 
@@ -109,7 +109,6 @@ const PhotoConfirmationModal = ({
           <View style={styles.taskCard}>
             <Text style={styles.taskName}>{task.title || 'Задача'}</Text>
             <View style={styles.addressRow}>
-              <Text style={styles.addressIcon}>📍</Text>
               <Text style={styles.taskAddress}>{task.location || 'Адрес не указан'}</Text>
             </View>
           </View>
@@ -122,7 +121,7 @@ const PhotoConfirmationModal = ({
               disabled={uploading}
             >
               <View style={styles.cameraIconCircle}>
-                <Text style={styles.cameraEmoji}>📷</Text>
+                <Image source={require('../assets/free-icon-camera-482889.png')} style={{ width: 24, height: 24,  tintColor: '#1F4E8C'}} />
               </View>
               <Text style={styles.cameraButtonText}>Сделать фото</Text>
               <Text style={styles.cameraHint}>Сфотографируйте объект или вывеску</Text>
@@ -134,17 +133,21 @@ const PhotoConfirmationModal = ({
                 style={styles.retakeButton}
                 onPress={retakePhoto}
               >
-                <Text style={styles.retakeButtonText}>🔄 Переснять</Text>
+                <Text style={styles.retakeButtonText}>Переснять</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Инструкция */}
           <View style={styles.instructions}>
-            <Text style={styles.instructionTitle}>📋 Важно:</Text>
+            <Text style={styles.instructionTitle}>Важно:</Text>
             <Text style={styles.instructionText}>
-              • Сфотографируйте объект или его номер\n
-              • Убедитесь, что фото четкое и узнаваемое\n
+              • Сфотографируйте объект или его номер
+            </Text>
+             <Text style={styles.instructionText}>
+              • Убедитесь, что фото четкое и узнаваемое
+            </Text>
+            <Text style={styles.instructionText}>
               • Администратор проверит фото в течение 5 минут
             </Text>
           </View>
@@ -161,7 +164,6 @@ const PhotoConfirmationModal = ({
               ) : (
                 <>
                   <Text style={styles.submitButtonText}>Отправить на проверку</Text>
-                  <Text style={styles.submitButtonIcon}>→</Text>
                 </>
               )}
             </TouchableOpacity>

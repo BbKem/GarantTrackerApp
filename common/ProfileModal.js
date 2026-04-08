@@ -13,7 +13,6 @@ import {
   ScrollView,
   Platform
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { update, ref as dbRef, onValue, off, get } from 'firebase/database';
 import { db } from '../config';
 import { showAlert, showConfirm } from '../utils/notifications';
@@ -333,7 +332,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#8FA3BF" />
+            <Image source={require('../assets/free-icon-close-4013407.png')} style={{ width: 24, height: 24, tintColor: '#8FA3BF' }} />
           </TouchableOpacity>
           <ScrollView 
             showsVerticalScrollIndicator={false}
@@ -356,7 +355,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
                   {uploading ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Ionicons name="camera" size={20} color="#fff" />
+                    <Image source={require('../assets/free-icon-camera-482889.png')} style={{ width: 20, height: 20,  tintColor: '#fff'}} />
                   )}
                 </TouchableOpacity>
                 {uploading && (
@@ -374,7 +373,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
 
             <View style={styles.profileInfo}>
               <View style={styles.infoItem}>
-                <Ionicons name="person" size={20} color="#1F4E8C" />
+                <Image source={require('../assets/free-icon-user-456212.png')} style={styles.newIcon} />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Логин</Text>
                   <Text style={styles.infoValue}>{user?.username}</Text>
@@ -382,7 +381,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
               </View>
 
               <View style={styles.infoItem}>
-                <Ionicons name="lock-closed" size={20} color="#1F4E8C" />
+                <Image source={require('../assets/free-icon-padlock-25239.png')} style={styles.newIcon} />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Пароль</Text>
                   <Text style={styles.infoValue}>••••••••</Text>
@@ -390,7 +389,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
               </View>
 
               <View style={styles.infoItem}>
-                <Ionicons name="shield-checkmark" size={20} color="#1F4E8C" />
+              <Image source={require('../assets/free-icon-shield-11182843.png')} style={{ width: 22, height: 22,  tintColor: '#1F4E8C' }} />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Роль</Text>
                   <Text style={styles.infoValue}>
@@ -400,7 +399,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
               </View>
 
               <View style={styles.infoItem}>
-                <Ionicons name="images" size={20} color="#1F4E8C" />
+                <Image source={require('../assets/free-icon-image-gallery-3342176.png')} style={styles.newIcon} />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Фото профиля</Text>
                   <Text style={styles.infoValue}>
@@ -419,7 +418,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
 
               {user?.userType === 'admin' && (
                 <View style={styles.infoItem}>
-                  <Ionicons name="archive" size={20} color="#1F4E8C" />
+                 <Image source={require('../assets/free-icon-archive-7167185.png')} style={{ width: 20, height: 20, tintColor: '#1F4E8C' }} />
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Архив задач</Text>
                     <Text style={styles.infoValue}>Просмотр архивных задач</Text>
@@ -442,7 +441,6 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
               onPress={handleSignOut}
               disabled={uploading}
             >
-              <Ionicons name="log-out" size={20} color="#FF6B6B" />
               <Text style={styles.logoutButtonText}>Выйти из системы</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -459,7 +457,7 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
                   style={styles.closeButton} 
                   onPress={() => setArchiveModalVisible(false)}
                 >
-                  <Ionicons name="close" size={24} color="#8FA3BF" />
+                   <Image source={require('../assets/free-icon-close-4013407.png')} style={{ width: 24, height: 24, tintColor: '#8FA3BF' }} />
                 </TouchableOpacity>
                 
                 <Text style={styles.modalTitle}>Архив задач</Text>
@@ -474,7 +472,6 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
                   </View>
                 ) : archivedTasks.length === 0 ? (
                   <View style={styles.emptyArchive}>
-                    <Ionicons name="archive-outline" size={64} color="#ccc" />
                     <Text style={styles.emptyText}>Архив пуст</Text>
                     <Text style={styles.emptySubtext}>
                       Завершенные задачи появятся здесь после выгрузки с опцией удаления
@@ -507,6 +504,11 @@ const ProfileModal = ({ visible, user, onClose, onSignOut }) => {
 };
 
 const styles = StyleSheet.create({  
+  newIcon: {
+  width: 18,
+  height: 18,
+  tintColor: '#1F4E8C', 
+},
   modalContainer: {
     flex: 1,
     justifyContent: 'center',

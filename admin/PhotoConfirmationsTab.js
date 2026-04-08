@@ -198,7 +198,6 @@ const PhotoConfirmationsTab = () => {
   if (confirmations.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyEmoji}>📷</Text>
         <Text style={styles.emptyText}>Нет ожидающих подтверждений</Text>
         <Text style={styles.emptySubtext}>
           Запросы на фото-подтверждение появятся здесь

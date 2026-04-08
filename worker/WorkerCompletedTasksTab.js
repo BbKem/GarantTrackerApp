@@ -8,13 +8,13 @@ import {
   Alert,
   Modal,
   FlatList,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { ref, update } from 'firebase/database';
 import { db } from '../config';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
-import { Ionicons } from '@expo/vector-icons';
 
 // Веб-совместимый Alert
 const showAlert = (title, message, buttons = null) => {
@@ -130,7 +130,7 @@ const WorkerCompletedTasksTab = ({ tasks, user, onCleanupTasks }) => {
           </Text>
         </View>
         <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-          {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+          {isSelected &&   <Image source={require('../assets/free-icon-checkmarks-11229517.png')} style={{ width: 18, height: 18,  tintColor: '#fff'}} />}
         </View>
       </TouchableOpacity>
     );
@@ -139,14 +139,12 @@ const WorkerCompletedTasksTab = ({ tasks, user, onCleanupTasks }) => {
   const renderNormalTaskItem = ({ item }) => (
     <TaskCard task={item} completed={true}>
       <View style={styles.completionInfo}>
-        <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
         <Text style={styles.completionTime}>
           Завершено: {item.completedAt ? new Date(item.completedAt).toLocaleString('ru-RU') : 'нет данных'}
         </Text>
       </View>
       {item.lastChecked && (
         <View style={styles.arrivalInfo}>
-          <Ionicons name="location-outline" size={12} color="#1F4E8C" />
           <Text style={styles.arrivalTime}>
             Прибытие: {new Date(item.lastChecked).toLocaleString('ru-RU')}
           </Text>
@@ -166,7 +164,6 @@ const WorkerCompletedTasksTab = ({ tasks, user, onCleanupTasks }) => {
             style={styles.cleanupButton}
             onPress={() => setCleanupModalVisible(true)}
           >
-            <Ionicons name="trash-outline" size={16} color="#FF6B6B" />
             <Text style={styles.cleanupButtonText}>Очистить</Text>
           </TouchableOpacity>
         )}
@@ -190,7 +187,7 @@ const WorkerCompletedTasksTab = ({ tasks, user, onCleanupTasks }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Скрыть завершённые задачи</Text>
               <TouchableOpacity onPress={() => setCleanupModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#8FA3BF" />
+                 <Image source={require('../assets/free-icon-close-4013407.png')} style={{ width: 24, height: 24, tintColor: '#8FA3BF' }} />
               </TouchableOpacity>
             </View>
             

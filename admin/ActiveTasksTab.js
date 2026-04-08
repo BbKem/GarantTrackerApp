@@ -24,9 +24,9 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
 
   const getStatusConfig = (status) => {
     switch (status) {
-      case 'pending': return { text: 'На проверке', color: '#FF9800', icon: '⏳' };
-      case 'onSite': return { text: 'На месте', color: '#4CAF50', icon: '📍' };
-      default: return { text: 'Не подтверждено', color: '#FF6B6B', icon: '⚠️' };
+      case 'pending': return { text: 'На проверке', color: '#FF9800' };
+      case 'onSite': return { text: 'На месте', color: '#4CAF50'};
+      default: return { text: 'Не подтверждено', color: '#FF6B6B'};
     }
   };
 
@@ -43,7 +43,6 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
         </View>
         {item.lastChecked && !isPending && (
           <View style={styles.lastCheckedContainer}>
-            <Text style={styles.lastCheckedIcon}>🔄</Text>
             <Text style={styles.lastChecked}>Последняя проверка: {new Date(item.lastChecked).toLocaleString()}</Text>
           </View>
         )}
@@ -60,7 +59,7 @@ const ActiveTasksTab = ({ tasks, selectedWorker, workers, setSelectedWorker, pen
         workersLoading={workersLoading} // ✅ Передали состояние загрузки
       />
       <View style={styles.headerSection}>
-        <Text style={styles.taskCountText}>📋 Всего активных задач: {activeTasks.length}</Text>
+        <Text style={styles.taskCountText}>Всего активных задач: {activeTasks.length}</Text>
       </View>
       <TaskList
         tasks={activeTasks}

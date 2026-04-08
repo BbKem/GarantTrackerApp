@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import TaskList from '../common/TaskList';
 import TaskCard from '../common/TaskCard';
 
@@ -67,7 +66,6 @@ const WorkerActiveTasksTab = ({
       <TaskCard task={item} isPending={isPending}>
         {isPending && (
           <View style={styles.pendingContainer}>
-            <Ionicons name="time-outline" size={14} color="#FF9800" />
             <Text style={styles.pendingText}>
               {hasPendingArrival 
                 ? 'Фото прибытия на проверке' 
@@ -92,11 +90,6 @@ const WorkerActiveTasksTab = ({
               onPress={() => handleConfirmPress(item)}
               disabled={isConfirmDisabled}
             >
-              <Ionicons 
-                name="location-outline" 
-                size={18} 
-                color={isConfirmDisabled ? '#8FA3BF' : '#FFFFFF'} 
-              />
               <Text style={styles.blueButtonText}>
                 {isLoading ? "Проверка..." : "Подтвердить местоположение"}
               </Text>
@@ -110,11 +103,6 @@ const WorkerActiveTasksTab = ({
               onPress={() => handleCompletePress(item)}
               disabled={isCompleteDisabled}
             >
-              <Ionicons 
-                name="checkmark-circle-outline" 
-                size={18} 
-                color={isCompleteDisabled ? '#8FA3BF' : '#1F4E8C'} 
-              />
               <Text style={styles.whiteButtonText}>
                 Завершить задачу
               </Text>
@@ -124,7 +112,6 @@ const WorkerActiveTasksTab = ({
 
         {item.completed && (
           <View style={styles.completedContainer}>
-            <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
             <Text style={styles.completedText}>Задача завершена</Text>
           </View>
         )}
@@ -188,27 +175,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  whiteButton: {
+   whiteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#475569',  // тёмный графит
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     gap: 8,
   },
   whiteButtonDisabled: {
-    backgroundColor: '#F4F7FB',
-    borderColor: '#E2E8F0',
-    opacity: 0.7,
+    backgroundColor: '#CBD5E1',  // нейтральный серый
+    opacity: 1,                  // убираем прозрачность → чётко видно состояние
   },
   whiteButtonText: {
-    color: '#1F4E8C',
+    color: '#FFFFFF',            // белый текст для контраста
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   loadingContainer: {
     marginVertical: 10,
