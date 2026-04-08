@@ -643,11 +643,7 @@ const WorkerPanel = ({ user, onSignOut, tasks }) => {
           style={[styles.navButton, activeTab === 'active' && styles.activeNavButton]}
           onPress={() => setActiveTab('active')}
         >
-          <Ionicons 
-            name="play-circle-outline" 
-            size={24} 
-            color={activeTab === 'active' ? '#1F4E8C' : '#8FA3BF'} 
-          />
+        <Image source={require('../assets/activ_icon.png')} style={styles.navIcon} />
           <Text style={[styles.navText, activeTab === 'active' && styles.activeNavText]}>
             Активные
           </Text>
@@ -692,6 +688,11 @@ const WorkerPanel = ({ user, onSignOut, tasks }) => {
 };
 
 const styles = StyleSheet.create({
+  navIcon: {
+  width: 24,
+  height: 24,
+  tintColor: '#1F4E8C', 
+},
   container: {
     flex: 1,
     backgroundColor: '#F4F7FB',
