@@ -2,6 +2,11 @@
   "version": 1,
   "type": "static",
   "entry": "dist/index.html",
+  "layers": [
+    {
+      "name": "static"
+    }
+  ],
   "routes": [
     {
       "pattern": "/*",
