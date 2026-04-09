@@ -105,7 +105,6 @@ class NotificationService {
         }
       });
       
-      // Сортируем по времени (новые сверху)
       notifications.sort((a, b) => b.timestamp - a.timestamp);
       callback(notifications);
     });
