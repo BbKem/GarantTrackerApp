@@ -1,4 +1,4 @@
 [deploy]
 type = "static"
 directory = "dist"
-entry = "index.html"
+entry = "dist/index.html"
