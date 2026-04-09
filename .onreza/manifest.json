@@ -4,7 +4,8 @@
   "routes": [
     {
       "pattern": "/*",
-      "target": "/index.html"
+      "target": "/index.html",
+      "layer": "static"
     }
   ]
 }
