@@ -1,11 +1,10 @@
 {
   "version": 1,
-  "type": "static",
+  "type": "STATIC",
   "entry": "dist/index.html",
   "layers": [
     {
-      "name": "static",
-      "target": "dist"
+      "name": "static"
     }
   ],
   "routes": [
