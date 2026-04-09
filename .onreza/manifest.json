@@ -1,0 +1,10 @@
+{
+  "type": "static",
+  "entry": "dist/index.html",
+  "routes": [
+    {
+      "src": "/*",
+      "dest": "/index.html"
+    }
+  ]
+}
